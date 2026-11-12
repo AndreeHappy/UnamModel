@@ -1,0 +1,24 @@
+{
+  "name": "recorrido-unam",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node --check config.js && node --check app.js && node --check server.js",
+    "preview": "node server.js"
+  },
+  "dependencies": {
+    "animejs": "^3.2.2",
+    "gsap": "^3.12.5",
+    "motion": "^11.11.17",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.3",
+    "vite": "^5.4.10"
+  }
+}

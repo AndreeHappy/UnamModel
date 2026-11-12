@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recorrido Virtual 3D – Sede Administrativa UNAM</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="modulepreload" href="./vendor/three.module.min.js" />
+    <link rel="modulepreload" href="./app.js" />
+    <link rel="modulepreload" href="./config.js" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.min.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Notificación flotante para pisos "Próximamente" -->
+    <div id="toast-msg" class="toast-msg" role="status" aria-live="polite"></div>
+
+    <div class="app-shell">
+      <!-- VISOR 3D EN PRIMERA PERSONA (MODELO DE ALAMBRE ARQUITECTÓNICO) -->
+      <main class="viewport-area">
+        <canvas id="scene-canvas" class="look-enabled"></canvas>
+
+        <!-- Cabecera institucional + Selector de Pisos -->
+        <div class="top-hud">
+          <div class="brand-card">
+            <div class="brand-eyebrow">Universidad Nacional de Moquegua · <span id="fps-badge">⚡ 120 FPS</span></div>
+            <h1 class="brand-title">Sede Administrativa · Modelo 3D</h1>
+          </div>
+
+          <nav id="floor-bar" class="floor-bar" aria-label="Selector de pisos"></nav>
+        </div>
+
+        <!-- Píldora sutil de estado de caminata -->
+        <div id="walk-status" class="walk-status-pill" aria-live="polite"></div>
+
+        <!-- Botones de control de cámara y visualización -->
+        <div class="camera-controls" role="toolbar" aria-label="Controles del recorrido 3D">
+          <button id="btn-pause" type="button" class="ctrl-btn" disabled>
+            ⏸ Pausar
+          </button>
+          <button id="btn-repeat" type="button" class="ctrl-btn" disabled>
+            ↺ Repetir Tramo
+          </button>
+          <button id="btn-hidden-lines" type="button" class="ctrl-btn active-toggle">
+            ◼ Líneas Ocultas: Sí
+          </button>
+          <button id="btn-freelook" type="button" class="ctrl-btn active-toggle">
+            👁 Mirar Alrededor: Activo
+          </button>
+          <button id="btn-guide" type="button" class="ctrl-btn">
+            ? Guía de Edición
+          </button>
+        </div>
+      </main>
+
+      <!-- PANEL DERECHO (En celular se convierte en cajón inferior desplegable) -->
+      <aside id="right-panel" class="right-panel" aria-label="Lugares y detalles del recorrido">
+        <button id="drawer-toggle" type="button" class="drawer-handle">
+          <span id="drawer-label">Ubicación: Exterior</span>
+          <span>▲ / ▼ Lugares</span>
+        </button>
+
+        <div class="panel-section-header">
+          <span class="panel-section-title">Lugares del Primer Piso</span>
+          <span style="font-size: 0.72rem; color: #004b93; font-weight: 600;">Viaje directo</span>
+        </div>
+
+        <!-- Lista de los 10 lugares -->
+        <div id="places-list" class="places-list" role="navigation" aria-label="Lista de destinos"></div>
+
+        <!-- Tarjeta de información al llegar al destino -->
+        <section class="destination-card" aria-live="polite">
+          <span class="dest-badge">Información del Lugar</span>
+          <h2 id="dest-title" class="dest-title">Exterior y Fachada Principal</h2>
+          <div id="dest-photos" class="dest-photos"></div>
+          <p id="dest-desc" class="dest-desc"></p>
+          <div id="dest-schedule" class="dest-schedule"></div>
+
+          <div class="quick-goto-title">Ir directamente a otro lugar:</div>
+          <div id="quick-goto-grid" class="quick-goto-grid"></div>
+        </section>
+      </aside>
+    </div>
+
+    <!-- MODAL DE GUÍA BREVE DE CONFIGURACIÓN -->
+    <div id="guide-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+      <div class="modal-box">
+        <h3 id="guide-title">Guía Rápida de Edición (config.js)</h3>
+        <p style="font-size: 0.84rem; margin-bottom: 10px; line-height: 1.45;">
+          Todo el edificio, lugares, letreros y red de zonas caminables están definidos en
+          <code>config.js</code>.
+        </p>
+
+        <strong style="font-size: 0.82rem;">1. Agregar un nuevo lugar:</strong>
+        <pre>// 1) Añade un waypoint en `nodosCaminables`:
+wp_bienestar: [2.0, 1.65, 2.2],
+
+// 2) Conéctalo en `conexiones` (estado: 'libre' o 'muro'):
+{ desde: 'wp_pasillo_oeste', hacia: 'wp_bienestar', estado: 'libre' },
+
+// 3) Registra el destino en `lugares`:
+bienestar: {
+  id: 'bienestar',
+  nombre: 'Bienestar',
+  titulo: 'Oficina de Bienestar Universitario',
+  tramites: 'Atención estudiantil, comedor y servicio social.',
+  horario: 'Lunes a Viernes: 08:00 - 15:45',
+  posicion: [2.0, 1.65, 2.2],
+  orientacionLlegada: [2.0, 2.1, 5.5],
+  nodoRed: 'wp_bienestar',
+  letrero: { texto: 'BIENESTAR', pos: [2.0, 2.85, 5.45], rotY: Math.PI, ancho: 3.2 },
+}</pre>
+
+        <strong style="font-size: 0.82rem;">2. Mover o agregar un bloque o muro (siempre a la misma altura):</strong>
+        <pre>// En `bloquesPlano` dentro de config.js usa límites exactos [xMin, xMax, zMin, zMax]:
+{ nombre: 'Nuevo Bloque', xMin: 33.0, xMax: 38.0, zMin: 26.5, zMax: 32.5 }</pre>
+
+        <strong style="font-size: 0.82rem;">3. Activar un nuevo piso:</strong>
+        <pre>// En `pisos` dentro de config.js cambia `activo: true`:
+{ id: 2, nombre: 'Piso 2', activo: true }</pre>
+
+        <button id="btn-close-guide" type="button" class="ctrl-btn" style="margin-top: 8px;">
+          Cerrar Guía
+        </button>
+      </div>
+    </div>
+
+    <!-- Aplicación compatible con Vite (localhost:5173) -->
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
