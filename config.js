@@ -232,9 +232,9 @@ window.UNAM_CONFIG = {
     wp_hall_oeste:         [18.0, 1.75, 42.5],
     wp_mesa_partes:        [34.5, 1.75, 42.5],
     wp_hall_este:          [41.0, 1.75, 42.5],
-    wp_pasillo_tunel_ext:  [48.0, 1.75, 56.0],
+    wp_pasillo_tunel_ext:  [50.0, 1.75, 56.0],
     wp_tunel_produccion:   [36.0, 1.75, 56.0],
-    wp_pasillo_central_1:  [47.5, 1.75, 42.5],
+    wp_pasillo_central_1:  [50.0, 1.75, 42.5],
     wp_oti:                [67.5, 1.75, 42.5],
     wp_puerta_doble_int:   [67.5, 1.75, 39.5],
     wp_puerta_doble_ext:   [67.5, 1.75, 35.5],
@@ -308,25 +308,26 @@ window.UNAM_CONFIG = {
     { nombre: 'CAJA (Muro Placa y Asientos)', xMin: 19.0, xMax: 23.5, zMin: 51.0, zMax: 55.6 },
     { nombre: 'CAJA (Interior Tras Mampara)', xMin: 20.5, xMax: 23.5, zMin: 55.6, zMax: 60.0 },
     {
-      // Mesa de Partes (x: 19..46, profundidad ~4.8): alineada con Caja en x = 19.0 y con Centros de Producción en x = 46.0
+      // Mesa de Partes (x: 19..45.74): termina antes del muro Este en x = 45.75..46.0 para evitar z-fighting
       nombre: 'MESA DE PARTES',
       alturaBloque: 1.25,
       esMostradorAtencion: true,
       poligono: [
         [19.0, 51.0],
         [27.0, 46.2],
-        [46.0, 46.2],
-        [46.0, 51.0],
+        [45.74, 46.2],
+        [45.74, 51.0],
       ],
-      bbox: { xMin: 19.0, xMax: 46.0, zMin: 46.2, zMax: 51.0 },
+      bbox: { xMin: 19.0, xMax: 45.75, zMin: 46.2, zMax: 51.0 },
     },
     // Centros de Producción movidos ordenadamente atrás de Caja (x: 23.5 .. 46.0) manteniendo 11 de largo (z: 51.0 .. 62.0) y túnel interior
     { nombre: 'CENTROS DE PRODUCCIÓN (Ala Superior)', xMin: 23.5, xMax: 46.0, zMin: 51.0, zMax: 53.8 },
     { nombre: 'CENTROS DE PRODUCCIÓN (Fondo Izquierdo)', xMin: 23.5, xMax: 27.5, zMin: 53.8, zMax: 62.0 },
     { nombre: 'CENTROS DE PRODUCCIÓN (Ala Inferior)', xMin: 27.5, xMax: 46.0, zMin: 58.2, zMax: 62.0 },
 
-    { nombre: 'ELEVADOR', xMin: 50.0, xMax: 59.0, zMin: 46.5, zMax: 51.5 },
-    { nombre: 'BAÑO SUR', xMin: 50.0, xMax: 59.0, zMin: 51.5, zMax: 59.5 },
+    // Elevador y Baño Sur de 5 bloques de ancho (x: 54.0 .. 59.0) dejando pasillo amplio de 8 bloques (x: 46.0 .. 54.0)
+    { nombre: 'ELEVADOR', xMin: 54.0, xMax: 59.0, zMin: 46.5, zMax: 51.5 },
+    { nombre: 'BAÑO SUR', xMin: 54.0, xMax: 59.0, zMin: 51.5, zMax: 59.5 },
     // OTI = 17 bloques de ancho (x: 59.0 .. 76.0)
     { nombre: 'OTI', xMin: 59.0, xMax: 76.0, zMin: 46.5, zMax: 59.5 },
     // SECRETARÍA GENERAL = 17 bloques de ancho (x: 76.0 .. 93.0)
@@ -347,17 +348,17 @@ window.UNAM_CONFIG = {
     // Cara Sur del pórtico y frente ampliado hacia Caja cerrados en vidrio continuo (x: 5.8..12.6 y 14.0..19.0)
     { x1: 5.8, z1: 59.8, x2: 12.6, z2: 59.8, panos: 4 },
     { x1: 14.0, z1: 59.8, x2: 19.0, z2: 59.8, panos: 3 },
-    { x1: 46.0, z1: 59.5, x2: 46.5, z2: 59.5, panos: 1 },
-    { x1: 49.5, z1: 59.5, x2: 50.0, z2: 59.5, panos: 1 },
+    // Salida Sur amplia de 8 bloques (x: 46.0 .. 54.0, z = 59.5) frente al pasillo del Elevador
+    { x1: 46.0, z1: 59.5, x2: 48.2, z2: 59.5, panos: 2 },
+    { x1: 51.8, z1: 59.5, x2: 54.0, z2: 59.5, panos: 2 },
     // Escalera 1 alineada a la entrada del Baño Norte (x: 43..52, abierta al oeste y sin muro en z = 38.0)
     { x1: 52.0, z1: 38.0, x2: 65.7, z2: 38.0, panos: 5 },
     { x1: 69.3, z1: 38.0, x2: 80.0, z2: 38.0, panos: 4 },
     // Escalera 2 rotada 90° antihorario mirando al sur (x: 80..89, entrada abierta en z = 38.0)
     { x1: 89.0, z1: 38.0, x2: 93.0, z2: 38.0, panos: 2 },
     { x1: 93.0, z1: 34.0, x2: 93.0, z2: 38.0, panos: 2 },
-    // Extremo Norte y Sur del pasadizo de 8 bloques (x: 93..101), ambos con puerta de vidrio doble
-    { x1: 93.0, z1: 34.0, x2: 95.4, z2: 34.0, panos: 2 },
-    { x1: 98.6, z1: 34.0, x2: 101.0, z2: 34.0, panos: 2 },
+    // Extremo Norte del pasadizo de 8 bloques cerrado con mampara de vidrio (sin puerta) y puerta doble solo al Sur
+    { x1: 93.0, z1: 34.0, x2: 101.0, z2: 34.0, panos: 5 },
     { x1: 93.0, z1: 59.5, x2: 95.4, z2: 59.5, panos: 2 },
     { x1: 98.6, z1: 59.5, x2: 101.0, z2: 59.5, panos: 2 },
   ],
@@ -374,12 +375,11 @@ window.UNAM_CONFIG = {
     { nombre: 'Puerta Baño Norte', pos: [43.0, 1.875, 24.0], tam: [0.26, 3.75, 2.0] },
     { nombre: 'Puerta Patrimonio', pos: [50.0, 1.875, 5.0], tam: [0.26, 3.75, 2.4] },
     { nombre: 'Puerta Centros de Producción', pos: [35.0, 1.875, 58.2], tam: [2.5, 3.75, 0.26] },
-    { nombre: 'Puerta Doble Sur', pos: [48.0, 2.25, 59.5], tam: [3.0, 4.5, 0.26], abiertaDoble: 'z' },
+    { nombre: 'Puerta Doble Sur', pos: [50.0, 2.25, 59.5], tam: [3.6, 4.5, 0.26], abiertaDoble: 'z' },
     { nombre: 'Puerta Doble Frente a OTI', pos: [67.5, 2.25, 38.0], tam: [3.6, 4.5, 0.26], abiertaDoble: 'z' },
     { nombre: 'Puerta OTI', pos: [67.5, 1.875, 46.5], tam: [2.6, 3.75, 0.26] },
     { nombre: 'Puerta Secretaría General', pos: [84.5, 1.875, 46.5], tam: [2.6, 3.75, 0.26] },
     { nombre: 'Puerta Doble Auditorio', pos: [101.0, 1.925, 41.0], tam: [0.28, 3.85, 3.6] },
-    { nombre: 'Puerta Salida Norte Auditorio', pos: [97.0, 2.25, 34.0], tam: [3.2, 4.5, 0.26], abiertaDoble: 'z' },
     { nombre: 'Puerta Salida Sur Auditorio', pos: [97.0, 2.25, 59.5], tam: [3.2, 4.5, 0.26], abiertaDoble: 'z' },
   ],
 };

@@ -1113,7 +1113,7 @@ import './config.js';
           addPolygonBlockAtY(b.poligono, y0, 1.17, matWireDark, true, matDarkSeat);
           addPolygonBlockAtY(b.poligono, y0 + 1.17, 0.08, matWireDark, true, matOcclusion);
           addServiceGlassSegment(19.0, 51.0, 27.0, 46.2, 4, y0 + 1.25, y0 + 2.35);
-          addServiceGlassSegment(27.0, 46.2, 46.0, 46.2, 7, y0 + 1.25, y0 + 2.35);
+          addServiceGlassSegment(27.0, 46.2, 45.74, 46.2, 7, y0 + 1.25, y0 + 2.35);
         } else if (b.poligono) {
           addPolygonBlockAtY(b.poligono, y0, b.alturaBloque || H, matWireDark, true);
         } else {
@@ -1134,8 +1134,8 @@ import './config.js';
 
       // Dintel alto del túnel de Centros de Producción (x: 27.5..46.0, y: y0+6.5..y1, z: 53.8..58.2)
       addBoxByBounds(27.5, 46.0, y0 + 6.5, y1, 53.8, 58.2, matWireDark, true);
-      // Muro completo en el extremo Este de Mesa de Partes (frente al Elevador en x = 46.0)
-      addBoxByBounds(45.75, 46.0, y0, y1, 46.2, 51.0, matWireDark, true);
+      // Muro completo en el extremo Este de Mesa de Partes (sin superponer caras con mostrador ni Ala Superior)
+      addBoxByBounds(45.75, 46.0, y0, y1, 46.2, 50.99, matWireDark, true);
 
       // Mamparas de vidrio en este piso (el portal frontal z=59.8 solo se abre en Piso 1; arriba va el muro cortina azul)
       CFG.murosVidrio.forEach((mv) => {
@@ -1321,10 +1321,10 @@ import './config.js';
     });
     addWaitingBench(32.5, y0, 28.55, 3, 0);
 
-    // 5) ELEVADOR de 5 cuadritos de ancho (z: 46.5..51.5, mirando hacia el pasillo Oeste x = 50.0):
-    addBoxByBounds(49.86, 50.02, y0, y0 + 3.85, 47.95, 50.05, matWireDark, true, matSilver);
-    addBoxByBounds(49.84, 49.90, y0, y0 + 3.85, 48.98, 49.02, matWireDark, false);
-    addBoxByBounds(49.88, 49.95, y0 + 1.45, y0 + 1.95, 50.30, 50.47, matWireBlue, true, matSilver);
+    // 5) ELEVADOR de 5x5 cuadritos (x: 54.0..59.0, z: 46.5..51.5, mirando hacia el pasillo amplio de 8 cuadritos x = 46..54):
+    addBoxByBounds(53.86, 54.02, y0, y0 + 3.85, 47.95, 50.05, matWireDark, true, matSilver);
+    addBoxByBounds(53.84, 53.90, y0, y0 + 3.85, 48.98, 49.02, matWireDark, false);
+    addBoxByBounds(53.88, 53.95, y0 + 1.45, y0 + 1.95, 50.30, 50.47, matWireBlue, true, matSilver);
     //    - 3 tableros eléctricos grises en fila en el pasadizo hacia OTI (camino_a_oti.jpg)
     [60.8, 61.8, 62.8].forEach((tx) => {
       addBoxByBounds(tx, tx + 0.78, y0 + 1.25, y0 + 2.45, 46.38, 46.50, matWireDark, true, matSilver);
