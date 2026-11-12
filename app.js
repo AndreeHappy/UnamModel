@@ -211,6 +211,20 @@ import './config.js';
     side: THREE.DoubleSide,
   });
 
+  const matWarmWood = new THREE.MeshBasicMaterial({
+    color: 0x633e25, // Madera cálida/oscura para el panel trasero de Mesa de Partes
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matBookSpines = new THREE.MeshBasicMaterial({
+    color: 0x3b4c60, // Lomos de libros en el estante de Admisión/CEPRE
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
   const matBlueWall = new THREE.MeshBasicMaterial({
     color: 0x466d96, // Muros azules de la galería de rampas
     polygonOffset: true,
@@ -473,6 +487,66 @@ import './config.js';
 
     group.position.set(cx, yBase, cz);
     group.rotation.y = rotY;
+    scene.add(group);
+  }
+
+  // Estante vitrina de libros de cristal con marco oscuro (Foto 1: entre Admisión y CEPRE)
+  function addBookShowcase(cx, yBase, cz, rotY = 0) {
+    const group = new THREE.Group();
+    group.position.set(cx, yBase, cz);
+    group.rotation.y = rotY;
+
+    const w = 2.40;
+    const h = 2.15;
+    const d = 0.55;
+
+    // Base inferior oscura de cajones/zócalo
+    const baseH = 0.45;
+    const baseGeo = new THREE.BoxGeometry(w, baseH, d);
+    const baseMesh = new THREE.Mesh(baseGeo, matDarkSeat);
+    baseMesh.position.set(0, baseH / 2, 0);
+    baseMesh.visible = hiddenLinesEnabled;
+    occlusionMeshes.push(baseMesh);
+    group.add(baseMesh);
+    const baseEdges = new THREE.LineSegments(new THREE.EdgesGeometry(baseGeo), matWireDark);
+    baseEdges.position.copy(baseMesh.position);
+    group.add(baseEdges);
+
+    // Marco exterior de la vitrina
+    const frameGeo = new THREE.BoxGeometry(w, h - baseH, d);
+    const frameEdges = new THREE.LineSegments(new THREE.EdgesGeometry(frameGeo), matWireDark);
+    frameEdges.position.set(0, baseH + (h - baseH) / 2, 0);
+    group.add(frameEdges);
+
+    // Frente de vidrio
+    const frontGlass = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.08, h - baseH - 0.06), matWhiteGlass);
+    frontGlass.position.set(0, baseH + (h - baseH) / 2, d / 2);
+    group.add(frontGlass);
+
+    // 3 baldas o estantes interiores con libros exhibidos
+    for (let s = 1; s <= 3; s++) {
+      const shY = baseH + s * ((h - baseH) / 4);
+      const shelfGeo = new THREE.BoxGeometry(w - 0.06, 0.03, d - 0.06);
+      const shelfEdges = new THREE.LineSegments(new THREE.EdgesGeometry(shelfGeo), matWireSubtle);
+      shelfEdges.position.set(0, shY, 0);
+      group.add(shelfEdges);
+
+      for (let b = -4; b <= 4; b++) {
+        if (b === 0) continue;
+        const bGeo = new THREE.BoxGeometry(0.18, 0.28, 0.04);
+        const bMesh = new THREE.Mesh(bGeo, matBookSpines);
+        bMesh.position.set(b * 0.24, shY + 0.14, 0.06);
+        bMesh.rotation.x = -0.15;
+        bMesh.visible = hiddenLinesEnabled;
+        occlusionMeshes.push(bMesh);
+        group.add(bMesh);
+        const bEdges = new THREE.LineSegments(new THREE.EdgesGeometry(bGeo), matWireDark);
+        bEdges.position.copy(bMesh.position);
+        bEdges.rotation.copy(bMesh.rotation);
+        group.add(bEdges);
+      }
+    }
+
     scene.add(group);
   }
 
@@ -1063,7 +1137,10 @@ import './config.js';
     registerWallCollider(-0.2, 0.05, 28.0, 52.0);
     // Panel cuadriculado UNAM / ADMISIÓN a la derecha de la entrada (Piso 1) y banca lateral
     registerWallCollider(9.8, 12.5, 58.65, 59.05, 'piso1_only');
-    registerWallCollider(9.1, 10.1, 41.9, 44.5);
+    // Estante vitrina de libros (x: 9.0..9.6, z: 38.8..41.2) y bancas en pasadizo de Admisión y CEPRE
+    registerWallCollider(9.0, 9.8, 38.6, 41.4, 'piso1_only');
+    registerWallCollider(9.1, 10.1, 43.9, 46.5);
+    registerWallCollider(9.1, 10.1, 33.7, 36.3);
 
     // Escalera 1 (x: 43..52, z: 28..38) alineada a la entrada del Baño Norte (girada 90° horario, abierta al Oeste)
     registerWallCollider(42.8, 52.2, 27.65, 28.05);
@@ -1108,12 +1185,36 @@ import './config.js';
       // Bloques de oficinas y ambientes en este piso
       CFG.bloquesPlano.forEach((b) => {
         if (b.esMostradorAtencion && b.poligono) {
-          // Mesa de Partes: mostrador oscuro de 1.17m + encimera blanca hasta 1.25m (misma altura que Caja)
-          // y encima mampara de vidrio blanco de atención al cliente (y0 + 1.25 .. y0 + 2.35)
-          addPolygonBlockAtY(b.poligono, y0, 1.17, matWireDark, true, matDarkSeat);
+          // Mesa de Partes: plinto inferior oscuro + cuerpo frontal blanco (1.17m) + encimera (1.25m)
+          // y encima mampara serigrafiada de atención al cliente (y0 + 1.25 .. y0 + 2.35)
+          addPolygonBlockAtY(b.poligono, y0, 0.22, matWireDark, true, matDarkSeat);
+          addPolygonBlockAtY(b.poligono, y0 + 0.22, 0.95, matWireDark, true, matOcclusion);
           addPolygonBlockAtY(b.poligono, y0 + 1.17, 0.08, matWireDark, true, matOcclusion);
           addServiceGlassSegment(19.0, 51.0, 27.0, 46.2, 4, y0 + 1.25, y0 + 2.35);
           addServiceGlassSegment(27.0, 46.2, 45.74, 46.2, 7, y0 + 1.25, y0 + 2.35);
+
+          // Fotos 2, 4 y 5: Muro posterior con revestimiento vertical de madera cálida
+          // delimitando el área interna de trabajo de Mesa de Partes (z: 49.5..50.8, x: 20.0..45.6)
+          addBoxByBounds(20.0, 45.6, y0, y0 + 2.95, 49.65, 49.92, matWireDark, true, matWarmWood);
+          // Letras institucionales plateadas en relieve sobre el panel de madera: "UNIVERSIDAD NACIONAL DE MOQUEGUA"
+          const woodLogoSign = createArchitecturalSign(
+            ['UNIVERSIDAD NACIONAL', 'DE MOQUEGUA'],
+            3.8,
+            0.65,
+            false
+          );
+          woodLogoSign.position.set(33.0, y0 + 2.15, 49.62);
+          woodLogoSign.rotation.y = Math.PI;
+          scene.add(woodLogoSign);
+
+          // Foto 5: Postes separadores de fila (catenarias / stanchions metálicos con cinta roja)
+          if (piso.id === 1) {
+            [21.5, 23.0, 24.5, 26.0].forEach((sx) => {
+              addBoxByBounds(sx - 0.03, sx + 0.03, y0, y0 + 0.92, 48.8, 48.86, matWireDark, true, matSilver);
+              addBoxByBounds(sx - 0.09, sx + 0.09, y0, y0 + 0.04, 48.74, 48.92, matWireDark, true, matSilver);
+            });
+            addBoxByBounds(21.5, 26.0, y0 + 0.78, y0 + 0.83, 48.81, 48.85, matWireDark, true, matRedSafety); // Cinta roja
+          }
         } else if (b.poligono) {
           addPolygonBlockAtY(b.poligono, y0, b.alturaBloque || H, matWireDark, true);
         } else {
@@ -1287,15 +1388,19 @@ import './config.js';
           );
         }
       }
-      // Roll-up banner vertical de CEPRE UNAM y vitrina de trofeos de vidrio (cepre.jpg)
-      addBoxByBounds(9.35, 9.52, y0 + 0.08, y0 + 2.25, 31.2, 32.15, matWireBlue, true, matBlueWall);
-      addGlassWallSegment(9.45, 28.4, 9.45, 30.8, 2, y0, y0 + 2.1, false);
+      // Roll-up banner vertical de CEPRE UNAM
+      addBoxByBounds(9.35, 9.52, y0 + 0.08, y0 + 2.25, 29.4, 30.2, matWireBlue, true, matBlueWall);
     }
 
-    // 2) admision.jpg: Banca metálica negra de 4 asientos junto al muro de Admisión (sin vidrio sobre la puerta)
-    addWaitingBench(9.65, y0, 43.2, 4, Math.PI / 2);
+    // 2) Foto 1 (ADMINISION Y CEPRE CON ESTANTE DE LIBROS.jpg):
+    //    Puertas en los extremos (Admisión z=49.5 a la izquierda y CEPRE z=31.0 a la derecha).
+    //    En el medio (z: 38.8..41.2): Estante vitrina de libros de cristal con baldas y libros expuestos
+    //    Flanqueado por 2 bancas metálicas negras de 4 asientos (z=45.5 junto a Admisión y z=35.0 junto a CEPRE)
+    addBookShowcase(9.35, y0, 40.0, Math.PI / 2);
+    addWaitingBench(9.65, y0, 45.2, 4, Math.PI / 2);
+    addWaitingBench(9.65, y0, 35.0, 4, Math.PI / 2);
 
-    // 3) pasadizo.jpg: falso techo curvo/ovalado en el cielo raso del hall central (sin pilares cilíndricos) y vitrina en Mesa de Partes
+    // 3) pasadizo.jpg + Foto 2: falso techo curvo/ovalado en el cielo raso del hall central y vitrina en Mesa de Partes
     const ovalPts = [];
     for (let i = 0; i <= 40; i++) {
       const ang = (i / 40) * Math.PI * 2;
