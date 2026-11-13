@@ -173,7 +173,7 @@ window.UNAM_CONFIG = {
         './multimedia/fotos/OFICINA DE OTI.jpg',
         './multimedia/fotos/camino_a_oti.jpg',
       ],
-      letrero: { lineas: ['OFICINA TECNOLOGÍA', 'E INFORMACIÓN'], pos: [64.7, 2.35, 46.46], rotY: Math.PI, ancho: 2.05, alto: 0.62 },
+      letrero: { lineas: ['OFICINA TECNOLOGÍA', 'E INFORMACIÓN'], pos: [64.8, 2.15, 46.44], rotY: Math.PI, ancho: 1.90, alto: 0.58 },
     },
     secretaria: {
       id: 'secretaria',
@@ -334,8 +334,10 @@ window.UNAM_CONFIG = {
     // Elevador y Baño Sur de 5 bloques de ancho (x: 54.0 .. 59.0) dejando pasillo amplio de 8 bloques (x: 46.0 .. 54.0)
     { nombre: 'ELEVADOR', xMin: 54.0, xMax: 59.0, zMin: 46.5, zMax: 51.5 },
     { nombre: 'BAÑO SUR', xMin: 54.0, xMax: 59.0, zMin: 51.5, zMax: 59.5 },
-    // OTI = 17 bloques de ancho (x: 59.0 .. 76.0); ambiente cerrado con puerta doble de vidrio cerrada en z = 46.5
-    { nombre: 'OTI', xMin: 59.0, xMax: 76.0, zMin: 46.5, zMax: 59.5 },
+    // OTI = 17 bloques de ancho (x: 59.0 .. 76.0); mampara de vidrio modular en z = 46.5 con interior amoblado
+    { nombre: 'OTI (Muro Divisorio Oeste)', xMin: 58.85, xMax: 59.15, zMin: 46.5, zMax: 59.5 },
+    { nombre: 'OTI (Muro Divisorio Este)', xMin: 75.85, xMax: 76.15, zMin: 46.5, zMax: 59.5 },
+    { nombre: 'OTI (Muro Fondo Sur)', xMin: 59.0, xMax: 76.0, zMin: 59.20, zMax: 59.5 },
     // SECRETARÍA GENERAL = 17 bloques de ancho (x: 76.0 .. 93.0)
     { nombre: 'SECRETARÍA GENERAL', xMin: 76.0, xMax: 93.0, zMin: 46.5, zMax: 59.5 },
 
@@ -360,6 +362,9 @@ window.UNAM_CONFIG = {
     // Escalera 1 alineada a la entrada del Baño Norte (x: 43..52, abierta al oeste y sin muro en z = 38.0)
     { x1: 52.0, z1: 38.0, x2: 65.7, z2: 38.0, panos: 5 },
     { x1: 69.3, z1: 38.0, x2: 80.0, z2: 38.0, panos: 4 },
+    // Fachada de vidrio modular de OTI hacia el pasadizo central (z = 46.5, x: 59.0 .. 76.0)
+    { x1: 59.0, z1: 46.5, x2: 66.2, z2: 46.5, panos: 5 },
+    { x1: 68.8, z1: 46.5, x2: 76.0, z2: 46.5, panos: 5 },
     // Escalera 2 rotada 90° antihorario mirando al sur (x: 80..89, entrada abierta en z = 38.0)
     { x1: 89.0, z1: 38.0, x2: 93.0, z2: 38.0, panos: 2 },
     { x1: 93.0, z1: 34.0, x2: 93.0, z2: 38.0, panos: 2 },
@@ -383,7 +388,7 @@ window.UNAM_CONFIG = {
     { nombre: 'Puerta Centros de Producción', pos: [35.0, 1.875, 58.2], tam: [2.5, 3.75, 0.26] },
     { nombre: 'Puerta Doble Sur', pos: [50.0, 2.25, 59.5], tam: [3.6, 4.5, 0.26], abiertaDoble: 'z' },
     { nombre: 'Puerta Doble Frente a OTI', pos: [67.5, 2.25, 38.0], tam: [3.6, 4.5, 0.26], abiertaDoble: 'z' },
-    { nombre: 'Puerta Vidrio OTI', pos: [67.5, 1.95, 46.5], tam: [2.6, 3.9, 0.26], esPuertaVidrioCerrada: true },
+    { nombre: 'Puerta Vidrio OTI', pos: [67.5, 1.95, 46.5], tam: [2.6, 3.9, 0.26], esPuertaVidrioOTI: true },
     { nombre: 'Puerta Secretaría General', pos: [84.5, 1.875, 46.5], tam: [2.6, 3.75, 0.26] },
     { nombre: 'Puerta Doble Auditorio', pos: [101.0, 1.925, 41.0], tam: [0.28, 3.85, 3.6] },
     { nombre: 'Puerta Salida Sur Auditorio', pos: [97.0, 2.25, 59.5], tam: [3.2, 4.5, 0.26], abiertaDoble: 'z' },

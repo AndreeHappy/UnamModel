@@ -472,6 +472,12 @@ import './config.js';
     const h = yTop - yBot;
     const paneW = totalLen / numPanes;
 
+    // Paño continuo de vidrio templado translúcido con sutil reflejo arquitectónico
+    const glassGeo = new THREE.PlaneGeometry(totalLen, h);
+    const glassMesh = new THREE.Mesh(glassGeo, matCurtainGlass);
+    glassMesh.position.set(totalLen / 2, yBot + h / 2, 0);
+    group.add(glassMesh);
+
     [yBot + 0.08, yBot + 4.55, yTop - 0.08].forEach((hy) => {
       const barGeo = new THREE.BoxGeometry(totalLen, 0.08, 0.12);
       const barLine = new THREE.LineSegments(new THREE.EdgesGeometry(barGeo), matWireDark);
@@ -710,13 +716,11 @@ import './config.js';
     scene.add(group);
   }
 
-  // Jardín tropical natural bajo las escaleras: capas frondosas arqueadas, tierra orgánica y agapantos en ramillete
+  // Jardín tropical natural bajo las escaleras: especies dispersas orgánicamente (sin filas rígidas ni franjas aisladas)
   function addTropicalPlanterGarden(gXMin, gXMax, ySurface, gZMin, gZMax, backSide = 'east') {
     const group = new THREE.Group();
-    const spanX = Math.max(0.8, gXMax - gXMin - 0.36);
-    const spanZ = Math.max(0.8, gZMax - gZMin - 0.36);
-    const alongZ = backSide === 'east';
-    const slots = 9;
+    const spanX = Math.max(0.8, gXMax - gXMin - 0.45);
+    const spanZ = Math.max(0.8, gZMax - gZMin - 0.45);
 
     // Cama orgánica de tierra oscura cubriendo el interior del macetero
     const soilMesh = new THREE.Mesh(
@@ -728,9 +732,9 @@ import './config.js';
     occlusionMeshes.push(soilMesh);
     group.add(soilMesh);
 
-    const broadLeafGeo = createArchedLeafGeometry(0.32, 1.55, 0.46, 8);
-    const bushBladeGeo = createArchedLeafGeometry(0.085, 0.78, 0.34, 7);
-    const burgundyLeafGeo = createArchedLeafGeometry(0.11, 0.96, 0.30, 7);
+    const broadLeafGeo = createArchedLeafGeometry(0.30, 1.48, 0.44, 8);
+    const bushBladeGeo = createArchedLeafGeometry(0.085, 0.74, 0.32, 7);
+    const burgundyLeafGeo = createArchedLeafGeometry(0.11, 0.92, 0.28, 7);
     const flowerFloretGeo = new THREE.SphereGeometry(0.036, 7, 5);
     const stemSegGeo = new THREE.CylinderGeometry(0.010, 0.014, 0.34, 5);
 
@@ -744,82 +748,102 @@ import './config.js';
       group.add(m);
     };
 
-    for (let i = 0; i < slots; i++) {
-      const t = (i + 0.5) / slots;
-      const bx = alongZ ? gXMax - 0.48 - (i % 2) * 0.28 : gXMin + 0.22 + t * spanX;
-      const bz = alongZ ? gZMin + 0.22 + t * spanZ : gZMin + 0.48 + (i % 2) * 0.26;
-      const fx = alongZ ? gXMin + 0.42 + (i % 3) * 0.32 : gXMin + 0.22 + t * spanX;
-      const fz = alongZ ? gZMin + 0.22 + t * spanZ : gZMax - 0.42 - (i % 3) * 0.30;
-      const midX = (bx + fx) * 0.5;
-      const midZ = (bz + fz) * 0.5;
+    // Generador pseudo-aleatorio determinista para una distribución 100% natural y dispersa
+    let sVal = backSide === 'east' ? 98214 : 45217;
+    const rnd = () => {
+      sVal = (sVal * 1664525 + 1013904223) % 4294967296;
+      return sVal / 4294967296;
+    };
 
-      // 1) Abanicos densos de hojas anchas tropicales (platanillo / ave del paraíso)
-      const baseYaw = alongZ ? -Math.PI / 2 : 0;
-      for (let k = -2; k <= 2; k++) {
-        addCurvedLeaf(
-          bx + (alongZ ? 0 : k * 0.06),
-          ySurface + 0.03,
-          bz + (alongZ ? k * 0.06 : 0),
-          broadLeafGeo,
-          k % 2 === 0 ? matLeafBroad : matLeafOlive,
-          baseYaw + k * 0.34 + (i % 3) * 0.12,
-          0.12 + Math.abs(k) * 0.11,
-          0.88 + ((i + Math.abs(k)) % 3) * 0.14
-        );
-      }
+    const plantCount = 30;
+    for (let i = 0; i < plantCount; i++) {
+      const col = i % 6;
+      const row = Math.floor(i / 6);
+      // Dispersión estratificada con fluctuación libre para evitar cualquier alineación
+      const u = Math.min(0.92, Math.max(0.08, (col + 0.15 + rnd() * 0.7) / 6));
+      const v = Math.min(0.92, Math.max(0.08, (row + 0.15 + rnd() * 0.7) / 5));
 
-      // 2) Matas frondosas delanteras en cascada natural (sin triángulos duros)
-      for (let j = 0; j < 10; j++) {
-        const yaw = (j / 10) * Math.PI * 2 + i * 0.48;
-        const leafMat = j % 3 === 0 ? matLeafOlive : j % 3 === 1 ? matLeafBroad : matGrass;
-        addCurvedLeaf(
-          fx + Math.sin(yaw) * 0.07,
-          ySurface + 0.03,
-          fz + Math.cos(yaw) * 0.07,
-          bushBladeGeo,
-          leafMat,
-          yaw,
-          0.18 + (j % 4) * 0.14,
-          0.78 + (j % 3) * 0.16
-        );
-      }
+      const px = gXMin + 0.22 + u * spanX;
+      const pz = gZMin + 0.22 + v * spanZ;
+      const rollType = rnd();
 
-      // 3) Matas rojizas (drácenas) naturales en la franja media
-      if (i % 2 === 1) {
-        for (let r = 0; r < 8; r++) {
-          const ryaw = (r / 8) * Math.PI * 2 + 0.25;
+      if (rollType < 0.36) {
+        // Mata de hojas anchas tropicales (platanillo / ave del paraíso)
+        const leafNum = 3 + Math.floor(rnd() * 3);
+        const clumpScale = 0.82 + rnd() * 0.34;
+        const mainYaw = rnd() * Math.PI * 2;
+        for (let k = 0; k < leafNum; k++) {
+          const lYaw = mainYaw + (k - (leafNum - 1) / 2) * 0.36 + (rnd() - 0.5) * 0.18;
+          const tilt = 0.12 + Math.abs(k - (leafNum - 1) / 2) * 0.10 + rnd() * 0.08;
           addCurvedLeaf(
-            midX + Math.sin(ryaw) * 0.05,
+            px + (rnd() - 0.5) * 0.08,
             ySurface + 0.03,
-            midZ + Math.cos(ryaw) * 0.05,
+            pz + (rnd() - 0.5) * 0.08,
+            broadLeafGeo,
+            k % 2 === 0 ? matLeafBroad : matLeafOlive,
+            lYaw,
+            tilt,
+            clumpScale * (0.90 + rnd() * 0.20)
+          );
+        }
+      } else if (rollType < 0.68) {
+        // Mata rojiza de drácenas naturales intercalada orgánicamente
+        const leafNum = 5 + Math.floor(rnd() * 4);
+        const clumpScale = 0.78 + rnd() * 0.32;
+        const mainYaw = rnd() * Math.PI * 2;
+        for (let r = 0; r < leafNum; r++) {
+          const rYaw = mainYaw + (r / leafNum) * Math.PI * 2 + (rnd() - 0.5) * 0.22;
+          const tilt = 0.18 + (r % 3) * 0.09 + rnd() * 0.08;
+          addCurvedLeaf(
+            px + (rnd() - 0.5) * 0.06,
+            ySurface + 0.03,
+            pz + (rnd() - 0.5) * 0.06,
             burgundyLeafGeo,
             matLeafBurgundy,
-            ryaw,
-            0.22 + (r % 3) * 0.14,
-            0.84 + (r % 2) * 0.18
+            rYaw,
+            tilt,
+            clumpScale
+          );
+        }
+      } else {
+        // Roseta frondosa verde de suelo (lenguas / hierbas tupidas)
+        const leafNum = 7 + Math.floor(rnd() * 4);
+        const clumpScale = 0.75 + rnd() * 0.35;
+        const mainYaw = rnd() * Math.PI * 2;
+        for (let j = 0; j < leafNum; j++) {
+          const jYaw = mainYaw + (j / leafNum) * Math.PI * 2;
+          const leafMat = j % 3 === 0 ? matLeafOlive : j % 3 === 1 ? matLeafBroad : matGrass;
+          addCurvedLeaf(
+            px + Math.sin(jYaw) * 0.06,
+            ySurface + 0.03,
+            pz + Math.cos(jYaw) * 0.06,
+            bushBladeGeo,
+            leafMat,
+            jYaw,
+            0.18 + (j % 3) * 0.12 + rnd() * 0.06,
+            clumpScale
           );
         }
       }
 
-      // 4) Varas gráciles curvas con umbelas esféricas de florecillas agapanto
-      if (i % 2 === 0 || i === 4) {
-        const stH = 1.05 + (i % 3) * 0.16;
-        const fxP = midX + (alongZ ? -0.14 : 0.10);
-        const fzP = midZ + (alongZ ? 0.10 : 0.14);
-        const leanAng = alongZ ? -Math.PI / 2 + 0.2 * ((i % 3) - 1) : 0.25 * ((i % 3) - 1);
-        let tipX = fxP;
+      // Agapantos con flores moradas dispersas en 8 ubicaciones variadas
+      if (i % 4 === 1 || i === 22) {
+        const stH = 0.95 + rnd() * 0.40;
+        const leanYaw = rnd() * Math.PI * 2;
+        let tipX = px + (rnd() - 0.5) * 0.10;
         let tipY = ySurface + 0.03;
-        let tipZ = fzP;
+        let tipZ = pz + (rnd() - 0.5) * 0.10;
+
         for (let sIdx = 0; sIdx < 4; sIdx++) {
-          const segTilt = 0.06 + sIdx * 0.07;
+          const segTilt = 0.04 + sIdx * 0.06;
           const segLen = (stH / 4) * 1.02;
-          const dx = Math.sin(leanAng) * Math.sin(segTilt) * segLen;
-          const dz = Math.cos(leanAng) * Math.sin(segTilt) * segLen;
+          const dx = Math.sin(leanYaw) * Math.sin(segTilt) * segLen;
+          const dz = Math.cos(leanYaw) * Math.sin(segTilt) * segLen;
           const dy = Math.cos(segTilt) * segLen;
           const stSeg = new THREE.Mesh(stemSegGeo, matLeafOlive);
           stSeg.scale.y = segLen / 0.34;
           stSeg.position.set(tipX + dx * 0.5, tipY + dy * 0.5, tipZ + dz * 0.5);
-          stSeg.rotation.set(segTilt, leanAng, 0, 'YXZ');
+          stSeg.rotation.set(segTilt, leanYaw, 0, 'YXZ');
           stSeg.visible = hiddenLinesEnabled;
           occlusionMeshes.push(stSeg);
           group.add(stSeg);
@@ -827,11 +851,12 @@ import './config.js';
           tipY += dy;
           tipZ += dz;
         }
-        // Ramillete de 9 florecillas redondeadas por umbela
-        for (let f = 0; f < 9; f++) {
-          const fYaw = (f / 8) * Math.PI * 2;
-          const fElev = f === 0 ? 1.0 : 0.35 + (f % 2) * 0.35;
-          const rad = f === 0 ? 0.0 : 0.09;
+
+        const floretCount = 8 + Math.floor(rnd() * 4);
+        for (let f = 0; f < floretCount; f++) {
+          const fYaw = (f / floretCount) * Math.PI * 2;
+          const fElev = f === 0 ? 1.0 : 0.30 + (f % 2) * 0.35;
+          const rad = f === 0 ? 0.0 : 0.08 + (f % 3) * 0.02;
           const fl = new THREE.Mesh(flowerFloretGeo, matFlowerPurple);
           fl.position.set(
             tipX + Math.sin(fYaw) * rad,
@@ -1244,6 +1269,8 @@ import './config.js';
     registerWallCollider(18.85, 20.5, 55.6, 60.0);
     // Muro sólido al extremo Este de Mesa de Partes (frente al Elevador en x = 46.0)
     registerWallCollider(45.7, 46.05, 46.2, 51.0);
+    // Puerta de vidrio cerrada de OTI
+    registerWallCollider(66.2, 68.8, 46.34, 46.66);
 
     CFG.murosVidrio.forEach((mv) => {
       const isEntrancePorticoGlass =
@@ -1340,14 +1367,26 @@ import './config.js';
           woodLogo3D.rotation.y = Math.PI;
           scene.add(woodLogo3D);
 
-          // Foto 5: Postes separadores de fila (catenarias / stanchions metálicos con cinta roja)
-          if (piso.id === 1) {
-            [21.5, 23.0, 24.5, 26.0].forEach((sx) => {
-              addBoxByBounds(sx - 0.03, sx + 0.03, y0, y0 + 0.92, 48.8, 48.86, matWireDark, true, matSilver);
-              addBoxByBounds(sx - 0.09, sx + 0.09, y0, y0 + 0.04, 48.74, 48.92, matWireDark, true, matSilver);
-            });
-            addBoxByBounds(21.5, 26.0, y0 + 0.78, y0 + 0.83, 48.81, 48.85, matWireDark, true, matRedSafety); // Cinta roja
-          }
+          // Mobiliario interior completo de Mesa de Partes (estaciones de trabajo de recepción, PCs, sillas y archivadores)
+          [26.0, 31.0, 36.0, 41.0].forEach((dx) => {
+            // Escritorio de atención en melamina gris clara
+            addBoxByBounds(dx - 1.25, dx + 1.25, y0 + 0.70, y0 + 0.76, 48.4, 49.6, matWireDark, true, matCeilingSlab);
+            addBoxByBounds(dx - 1.20, dx - 1.15, y0, y0 + 0.70, 48.45, 49.55, matWireDark, true, matDarkSeat);
+            addBoxByBounds(dx + 1.15, dx + 1.20, y0, y0 + 0.70, 48.45, 49.55, matWireDark, true, matDarkSeat);
+            // Cajonera lateral de melamina bajo el escritorio
+            addBoxByBounds(dx + 0.70, dx + 1.12, y0 + 0.02, y0 + 0.68, 48.5, 49.45, matWireDark, true, matCeilingSlab);
+            // Monitor de computadora plano
+            addBoxByBounds(dx - 0.34, dx + 0.34, y0 + 0.88, y0 + 1.28, 48.65, 48.70, matWireDark, true, matDarkSeat);
+            addBoxByBounds(dx - 0.08, dx + 0.08, y0 + 0.76, y0 + 0.88, 48.63, 48.72, matWireDark, true, matSilver);
+            // Teclado
+            addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.76, y0 + 0.78, 49.00, 49.25, matWireDark, true, matDarkSeat);
+            // Bandeja de expedientes / documentos
+            addBoxByBounds(dx - 1.05, dx - 0.75, y0 + 0.76, y0 + 0.94, 48.70, 49.30, matWireDark, true, matTeal);
+            // Silla de oficina ergonómica negra con respaldo acolchado
+            addBoxByBounds(dx - 0.26, dx + 0.26, y0 + 0.44, y0 + 0.50, 49.95, 50.40, matWireDark, true, matDarkSeat);
+            addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.50, y0 + 1.05, 50.32, 50.40, matWireDark, true, matDarkSeat);
+            addBoxByBounds(dx - 0.05, dx + 0.05, y0, y0 + 0.44, 50.12, 50.22, matWireDark, true, matSilver);
+          });
         } else if (b.poligono) {
           addPolygonBlockAtY(b.poligono, y0, b.alturaBloque || H, matWireDark, true);
         } else {
@@ -1387,46 +1426,55 @@ import './config.js';
           addDoubleGlassDoor(p.pos[0], y0, p.pos[2], width, p.tam[1], p.abiertaDoble);
           return;
         }
-        if (p.esPuertaVidrioCerrada) {
+        if (p.esPuertaVidrioOTI || p.esPuertaVidrioCerrada) {
           const doorW = p.tam[0];
           const doorH = p.tam[1];
           const gGrp = new THREE.Group();
-          gGrp.position.set(p.pos[0], y0, p.pos[2] - 0.14);
+          gGrp.position.set(p.pos[0], y0, p.pos[2]);
 
+          // Marco perimétrico de aluminio anodizado plateado
           const frameLines = new THREE.LineSegments(
-            new THREE.EdgesGeometry(new THREE.BoxGeometry(doorW, doorH, 0.16)),
-            matWireBlue
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(doorW, doorH, 0.12)),
+            matWireDark
           );
           frameLines.position.set(0, doorH / 2, 0);
           gGrp.add(frameLines);
 
-          // Dos hojas de vidrio cerradas con franjas pavonadas y manijas metálicas verticales
+          // Hoja doble de vidrio templado
           [-doorW / 4, doorW / 4].forEach((lx) => {
-            const paneW = doorW / 2 - 0.08;
-            const paneMesh = new THREE.Mesh(new THREE.PlaneGeometry(paneW, doorH - 0.10), matCurtainGlass);
-            paneMesh.position.set(lx, doorH / 2, 0);
-            gGrp.add(paneMesh);
-            const leafOutline = new THREE.LineSegments(
-              new THREE.EdgesGeometry(new THREE.BoxGeometry(paneW, doorH - 0.10, 0.05)),
+            const leafW = doorW / 2 - 0.05;
+            const glassLeaf = new THREE.Mesh(new THREE.PlaneGeometry(leafW, doorH - 0.08), matCurtainGlass);
+            glassLeaf.position.set(lx, doorH / 2, 0);
+            gGrp.add(glassLeaf);
+            const leafFrame = new THREE.LineSegments(
+              new THREE.EdgesGeometry(new THREE.BoxGeometry(leafW, doorH - 0.08, 0.06)),
               matWireDark
             );
-            leafOutline.position.set(lx, doorH / 2, 0);
-            gGrp.add(leafOutline);
+            leafFrame.position.set(lx, doorH / 2, 0);
+            gGrp.add(leafFrame);
           });
 
+          // Franjas pavonadas alineadas con los muros contiguos (y = 1.15, 1.55, 1.95)
           [1.15, 1.55, 1.95].forEach((fy) => {
-            const stripe = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 0.14, 0.22), matFrostedGlass);
-            stripe.position.set(0, fy, -0.02);
+            const stripe = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 0.08, 0.22), matFrostedGlass);
+            stripe.position.set(0, fy, 0.01);
             gGrp.add(stripe);
           });
 
-          [-0.14, 0.14].forEach((hx) => {
-            const handle = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.65, 0.08), matSilver);
-            handle.position.set(hx, 1.45, -0.07);
-            handle.visible = hiddenLinesEnabled;
-            occlusionMeshes.push(handle);
-            gGrp.add(handle);
+          // Tiradores tubulares verticales de acero inoxidable largo (Foto 4: largos desde y=1.05 hasta y=1.85)
+          [-0.12, 0.12].forEach((hx) => {
+            const handlePole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.82, 10), matSilver);
+            handlePole.position.set(hx, 1.45, 0.06);
+            handlePole.visible = hiddenLinesEnabled;
+            occlusionMeshes.push(handlePole);
+            gGrp.add(handlePole);
+            [1.10, 1.80].forEach((sy) => {
+              const hMount = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.08), matSilver);
+              hMount.position.set(hx, sy, 0.03);
+              gGrp.add(hMount);
+            });
           });
+
           scene.add(gGrp);
           return;
         }
@@ -1608,6 +1656,34 @@ import './config.js';
     [54.7, 55.8, 56.9].forEach((tx) => {
       addBoxByBounds(tx, tx + 0.78, y0 + 1.25, y0 + 2.45, 46.38, 46.50, matWireDark, true, matSilver);
       addBoxByBounds(tx + 0.24, tx + 0.52, y0 + 1.65, y0 + 1.92, 46.35, 46.38, matWireGold, true);
+    });
+
+    // 6) Mobiliario y detalles interiores de OTI (fieles a Foto 4):
+    //    a) Gran armario/archivador de madera cálida justo tras la puerta de vidrio (visible en Foto 4)
+    addBoxByBounds(69.2, 72.0, y0, y0 + 2.45, 47.4, 48.6, matWireDark, true, matWarmWood);
+    addBoxByBounds(69.2, 72.0, y0 + 2.40, y0 + 2.48, 47.36, 48.64, matWireDark, true, matSilver);
+    [69.9, 70.6, 71.3].forEach((cx) => {
+      addBoxByBounds(cx - 0.01, cx + 0.01, y0 + 0.1, y0 + 2.38, 47.35, 47.41, matWireDark, true, matDarkSeat);
+    });
+
+    //    b) Armario archivador lateral contra el muro este (x: 74.8..75.8, z: 48.0..54.0)
+    addBoxByBounds(74.8, 75.8, y0, y0 + 2.20, 48.0, 54.0, matWireDark, true, matWarmWood);
+
+    //    c) Puestos de trabajo de OTI con escritorios, monitores, teclados y sillas operativas
+    [61.8, 65.4, 72.5].forEach((dx) => {
+      addBoxByBounds(dx - 1.1, dx + 1.1, y0 + 0.72, y0 + 0.78, 51.2, 52.4, matWireDark, true, matCeilingSlab);
+      addBoxByBounds(dx - 1.05, dx - 1.00, y0, y0 + 0.72, 51.25, 52.35, matWireDark, true, matDarkSeat);
+      addBoxByBounds(dx + 1.00, dx + 1.05, y0, y0 + 0.72, 51.25, 52.35, matWireDark, true, matDarkSeat);
+      addBoxByBounds(dx - 0.32, dx + 0.32, y0 + 0.88, y0 + 1.26, 51.40, 51.46, matWireDark, true, matDarkSeat);
+      addBoxByBounds(dx - 0.06, dx + 0.06, y0 + 0.78, y0 + 0.88, 51.38, 51.48, matWireDark, true, matSilver);
+      addBoxByBounds(dx - 0.22, dx + 0.22, y0 + 0.78, y0 + 0.80, 51.75, 51.98, matWireDark, true, matDarkSeat);
+      addBoxByBounds(dx - 0.26, dx + 0.26, y0 + 0.44, y0 + 0.50, 52.7, 53.15, matWireDark, true, matDarkSeat);
+      addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.50, y0 + 1.05, 53.08, 53.16, matWireDark, true, matDarkSeat);
+    });
+
+    //    d) Racks de servidores y archivadores al fondo sur (z: 57.5..58.8)
+    [60.6, 63.2, 65.8, 70.5, 73.0].forEach((rx) => {
+      addBoxByBounds(rx, rx + 1.8, y0, y0 + 2.35, 57.8, 58.6, matWireDark, true, matSilver);
     });
   }
 
