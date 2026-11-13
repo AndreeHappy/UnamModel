@@ -478,7 +478,9 @@ import './config.js';
     glassMesh.position.set(totalLen / 2, yBot + h / 2, 0);
     group.add(glassMesh);
 
-    [yBot + 0.08, yBot + 4.55, yTop - 0.08].forEach((hy) => {
+    const horizontalBars = [yBot + 0.08, yTop - 0.08];
+    if (h > 5.0) horizontalBars.push(yBot + 4.55);
+    horizontalBars.forEach((hy) => {
       const barGeo = new THREE.BoxGeometry(totalLen, 0.08, 0.12);
       const barLine = new THREE.LineSegments(new THREE.EdgesGeometry(barGeo), matWireDark);
       barLine.position.set(totalLen / 2, hy, 0);
@@ -1367,26 +1369,6 @@ import './config.js';
           woodLogo3D.rotation.y = Math.PI;
           scene.add(woodLogo3D);
 
-          // Mobiliario interior completo de Mesa de Partes (estaciones de trabajo de recepción, PCs, sillas y archivadores)
-          [26.0, 31.0, 36.0, 41.0].forEach((dx) => {
-            // Escritorio de atención en melamina gris clara
-            addBoxByBounds(dx - 1.25, dx + 1.25, y0 + 0.70, y0 + 0.76, 48.4, 49.6, matWireDark, true, matCeilingSlab);
-            addBoxByBounds(dx - 1.20, dx - 1.15, y0, y0 + 0.70, 48.45, 49.55, matWireDark, true, matDarkSeat);
-            addBoxByBounds(dx + 1.15, dx + 1.20, y0, y0 + 0.70, 48.45, 49.55, matWireDark, true, matDarkSeat);
-            // Cajonera lateral de melamina bajo el escritorio
-            addBoxByBounds(dx + 0.70, dx + 1.12, y0 + 0.02, y0 + 0.68, 48.5, 49.45, matWireDark, true, matCeilingSlab);
-            // Monitor de computadora plano
-            addBoxByBounds(dx - 0.34, dx + 0.34, y0 + 0.88, y0 + 1.28, 48.65, 48.70, matWireDark, true, matDarkSeat);
-            addBoxByBounds(dx - 0.08, dx + 0.08, y0 + 0.76, y0 + 0.88, 48.63, 48.72, matWireDark, true, matSilver);
-            // Teclado
-            addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.76, y0 + 0.78, 49.00, 49.25, matWireDark, true, matDarkSeat);
-            // Bandeja de expedientes / documentos
-            addBoxByBounds(dx - 1.05, dx - 0.75, y0 + 0.76, y0 + 0.94, 48.70, 49.30, matWireDark, true, matTeal);
-            // Silla de oficina ergonómica negra con respaldo acolchado
-            addBoxByBounds(dx - 0.26, dx + 0.26, y0 + 0.44, y0 + 0.50, 49.95, 50.40, matWireDark, true, matDarkSeat);
-            addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.50, y0 + 1.05, 50.32, 50.40, matWireDark, true, matDarkSeat);
-            addBoxByBounds(dx - 0.05, dx + 0.05, y0, y0 + 0.44, 50.12, 50.22, matWireDark, true, matSilver);
-          });
         } else if (b.poligono) {
           addPolygonBlockAtY(b.poligono, y0, b.alturaBloque || H, matWireDark, true);
         } else {
@@ -1410,12 +1392,14 @@ import './config.js';
       // Muro completo en el extremo Este de Mesa de Partes (sin superponer caras con mostrador ni Ala Superior)
       addBoxByBounds(45.75, 46.0, y0, y1, 46.2, 50.99, matWireDark, true);
 
-      // Mamparas de vidrio en este piso (el portal frontal z=59.8 solo se abre en Piso 1; arriba va el muro cortina azul)
+      // Mamparas de vidrio en este piso (el portal frontal z=59.8 solo se abre en Piso 1; OTI a altura de puerta 3.9m sin vidrio arriba)
       CFG.murosVidrio.forEach((mv) => {
         const isEntrancePorticoGlass =
           mv.x1 < 13.0 && (Math.abs(mv.z1 - 59.8) < 0.05 || Math.abs(mv.x1 - 5.8) < 0.05);
         if (piso.id > 1 && isEntrancePorticoGlass) return;
-        addGlassWallSegment(mv.x1, mv.z1, mv.x2, mv.z2, mv.panos || 4, y0, y1);
+        const isOTI = Math.abs(mv.z1 - 46.5) < 0.05 && mv.x1 >= 58.9 && mv.x2 <= 76.1;
+        const targetY1 = isOTI ? y0 + 3.9 : y1;
+        addGlassWallSegment(mv.x1, mv.z1, mv.x2, mv.z2, mv.panos || 4, y0, targetY1);
       });
 
       // Puertas en este piso: puertas de vidrio de pasadizos abiertas; puerta doble de vidrio de OTI cerrada y oficinas cerradas
@@ -1658,33 +1642,7 @@ import './config.js';
       addBoxByBounds(tx + 0.24, tx + 0.52, y0 + 1.65, y0 + 1.92, 46.35, 46.38, matWireGold, true);
     });
 
-    // 6) Mobiliario y detalles interiores de OTI (fieles a Foto 4):
-    //    a) Gran armario/archivador de madera cálida justo tras la puerta de vidrio (visible en Foto 4)
-    addBoxByBounds(69.2, 72.0, y0, y0 + 2.45, 47.4, 48.6, matWireDark, true, matWarmWood);
-    addBoxByBounds(69.2, 72.0, y0 + 2.40, y0 + 2.48, 47.36, 48.64, matWireDark, true, matSilver);
-    [69.9, 70.6, 71.3].forEach((cx) => {
-      addBoxByBounds(cx - 0.01, cx + 0.01, y0 + 0.1, y0 + 2.38, 47.35, 47.41, matWireDark, true, matDarkSeat);
-    });
-
-    //    b) Armario archivador lateral contra el muro este (x: 74.8..75.8, z: 48.0..54.0)
-    addBoxByBounds(74.8, 75.8, y0, y0 + 2.20, 48.0, 54.0, matWireDark, true, matWarmWood);
-
-    //    c) Puestos de trabajo de OTI con escritorios, monitores, teclados y sillas operativas
-    [61.8, 65.4, 72.5].forEach((dx) => {
-      addBoxByBounds(dx - 1.1, dx + 1.1, y0 + 0.72, y0 + 0.78, 51.2, 52.4, matWireDark, true, matCeilingSlab);
-      addBoxByBounds(dx - 1.05, dx - 1.00, y0, y0 + 0.72, 51.25, 52.35, matWireDark, true, matDarkSeat);
-      addBoxByBounds(dx + 1.00, dx + 1.05, y0, y0 + 0.72, 51.25, 52.35, matWireDark, true, matDarkSeat);
-      addBoxByBounds(dx - 0.32, dx + 0.32, y0 + 0.88, y0 + 1.26, 51.40, 51.46, matWireDark, true, matDarkSeat);
-      addBoxByBounds(dx - 0.06, dx + 0.06, y0 + 0.78, y0 + 0.88, 51.38, 51.48, matWireDark, true, matSilver);
-      addBoxByBounds(dx - 0.22, dx + 0.22, y0 + 0.78, y0 + 0.80, 51.75, 51.98, matWireDark, true, matDarkSeat);
-      addBoxByBounds(dx - 0.26, dx + 0.26, y0 + 0.44, y0 + 0.50, 52.7, 53.15, matWireDark, true, matDarkSeat);
-      addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.50, y0 + 1.05, 53.08, 53.16, matWireDark, true, matDarkSeat);
-    });
-
-    //    d) Racks de servidores y archivadores al fondo sur (z: 57.5..58.8)
-    [60.6, 63.2, 65.8, 70.5, 73.0].forEach((rx) => {
-      addBoxByBounds(rx, rx + 1.8, y0, y0 + 2.35, 57.8, 58.6, matWireDark, true, matSilver);
-    });
+    // 6) OTI: interior despejado y limpio solicitado por el usuario (sin muebles interiores)
   }
 
   // Dibuja la retícula de baldosas sobre el suelo de los pisos 2, 3 y 4 (sin tabla flotante entre Escaleras 1 y 2)
@@ -2141,30 +2099,52 @@ import './config.js';
     scene.add(mesh);
   }
 
-  // Árbol grande natural con tronco ramificado y copa frondosa orgánica (cero cubos ni líneas duras)
+  // Árbol grande natural con tronco ramificado, raíces y copa frondosa multicapa (fiel a foto real de la alameda)
+  const treeCanopyGeo = new THREE.SphereGeometry(1.0, 16, 12);
+  const treeTuftGeo = new THREE.SphereGeometry(1.0, 12, 10);
+
   function addNaturalShadeTree(tx, yBase, tz, scale = 1.0) {
     const group = new THREE.Group();
     group.position.set(tx, yBase, tz);
     group.scale.setScalar(scale);
 
-    const trunkMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 2.3, 8), matTrunkBark);
-    trunkMesh.position.y = 1.15;
+    // Variación orgánica individual según posición del árbol (evita clones idénticos de videojuego)
+    const seed = Math.sin(tx * 12.9898 + tz * 78.233) * 43758.5453;
+    const rnd = seed - Math.floor(seed);
+    group.rotation.y = rnd * Math.PI * 2;
+
+    // 1. Cuello de raíces ensanchado en la base de la jardinera
+    const rootGeo = new THREE.CylinderGeometry(0.22, 0.40, 0.50, 10);
+    const rootMesh = new THREE.Mesh(rootGeo, matTrunkBark);
+    rootMesh.position.y = 0.25;
+    rootMesh.visible = hiddenLinesEnabled;
+    occlusionMeshes.push(rootMesh);
+    group.add(rootMesh);
+
+    // 2. Tronco principal cónico con sutil inclinación natural
+    const trunkGeo = new THREE.CylinderGeometry(0.18, 0.24, 2.1, 10);
+    const trunkMesh = new THREE.Mesh(trunkGeo, matTrunkBark);
+    trunkMesh.position.set((rnd - 0.5) * 0.08, 1.35, (rnd - 0.5) * 0.06);
+    trunkMesh.rotation.z = (rnd - 0.5) * 0.07;
     trunkMesh.visible = hiddenLinesEnabled;
     occlusionMeshes.push(trunkMesh);
     group.add(trunkMesh);
 
+    // 3. Ramas principales gruesas que se extienden orgánicamente hacia la copa
     const branches = [
-      { yaw: 0.2, tilt: 0.48, len: 1.55 },
-      { yaw: 1.8, tilt: 0.52, len: 1.65 },
-      { yaw: 3.3, tilt: 0.45, len: 1.50 },
-      { yaw: 4.9, tilt: 0.50, len: 1.60 },
+      { yaw: 0.15, tilt: 0.44, len: 1.85, r: 0.11 },
+      { yaw: 1.40, tilt: 0.52, len: 1.95, r: 0.10 },
+      { yaw: 2.65, tilt: 0.46, len: 1.80, r: 0.11 },
+      { yaw: 3.95, tilt: 0.50, len: 1.90, r: 0.10 },
+      { yaw: 5.15, tilt: 0.42, len: 1.75, r: 0.11 },
     ];
     branches.forEach((b) => {
-      const br = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, b.len, 6), matTrunkBark);
+      const br = new THREE.Mesh(new THREE.CylinderGeometry(b.r * 0.55, b.r, b.len, 8), matTrunkBark);
+      const halfL = b.len * 0.48;
       br.position.set(
-        Math.sin(b.yaw) * Math.sin(b.tilt) * b.len * 0.45,
-        2.05 + Math.cos(b.tilt) * b.len * 0.45,
-        Math.cos(b.yaw) * Math.sin(b.tilt) * b.len * 0.45
+        Math.sin(b.yaw) * Math.sin(b.tilt) * halfL,
+        2.10 + Math.cos(b.tilt) * halfL,
+        Math.cos(b.yaw) * Math.sin(b.tilt) * halfL
       );
       br.rotation.set(b.tilt, b.yaw, 0, 'YXZ');
       br.visible = hiddenLinesEnabled;
@@ -2172,22 +2152,45 @@ import './config.js';
       group.add(br);
     });
 
+    // 4. Masas de follaje multicapa extendidas horizontalmente (porte de árbol de sombra real)
     const clusters = [
-      { pos: [0.0, 3.65, 0.0], r: [1.85, 1.05, 1.85], mat: matTreeCanopy },
-      { pos: [-1.15, 3.35, 0.55], r: [1.35, 0.88, 1.30], mat: matTreeCanopyLit },
-      { pos: [1.20, 3.30, -0.45], r: [1.40, 0.90, 1.35], mat: matTreeCanopy },
-      { pos: [0.40, 3.45, 1.25], r: [1.30, 0.85, 1.25], mat: matLeafOlive },
-      { pos: [-0.45, 3.40, -1.20], r: [1.35, 0.85, 1.30], mat: matTreeCanopyLit },
-      { pos: [0.0, 4.35, 0.10], r: [1.35, 0.80, 1.35], mat: matTreeCanopyLit },
+      // Domo central denso
+      { pos: [0.0, 3.75, 0.0], sx: 2.30, sy: 1.20, sz: 2.30, mat: matTreeCanopy },
+      // Capa superior iluminada
+      { pos: [0.05, 4.45, -0.05], sx: 1.80, sy: 1.10, sz: 1.80, mat: matTreeCanopyLit },
+      // Masas extendidas horizontales que dan sombra sobre la jardinera y la vereda
+      { pos: [-1.45, 3.35, 0.45], sx: 1.70, sy: 0.95, sz: 1.60, mat: matTreeCanopyLit },
+      { pos: [1.40, 3.40, -0.50], sx: 1.75, sy: 0.95, sz: 1.65, mat: matTreeCanopy },
+      { pos: [0.55, 3.55, 1.45], sx: 1.65, sy: 0.90, sz: 1.55, mat: matLeafOlive },
+      { pos: [-0.60, 3.45, -1.40], sx: 1.70, sy: 0.92, sz: 1.60, mat: matLeafBroad },
+      { pos: [1.25, 3.60, 1.10], sx: 1.45, sy: 0.85, sz: 1.40, mat: matTreeCanopyLit },
+      { pos: [-1.15, 3.65, -1.05], sx: 1.40, sy: 0.82, sz: 1.35, mat: matTreeCanopy },
     ];
-    const unitCrownGeo = new THREE.IcosahedronGeometry(1.0, 1);
     clusters.forEach((c) => {
-      const m = new THREE.Mesh(unitCrownGeo, c.mat);
+      const m = new THREE.Mesh(treeCanopyGeo, c.mat);
       m.position.set(c.pos[0], c.pos[1], c.pos[2]);
-      m.scale.set(c.r[0], c.r[1], c.r[2]);
+      m.scale.set(c.sx, c.sy, c.sz);
       m.visible = hiddenLinesEnabled;
       occlusionMeshes.push(m);
       group.add(m);
+    });
+
+    // 5. Pequeños mechones perimétricos que suavizan la silueta y dan textura de hojas vivas
+    const tufts = [
+      { pos: [-1.95, 3.10, 0.20], s: 0.82, mat: matLeafBroad },
+      { pos: [1.90, 3.15, -0.30], s: 0.85, mat: matLeafOlive },
+      { pos: [0.30, 3.20, 1.95], s: 0.80, mat: matTreeCanopyLit },
+      { pos: [-0.40, 3.25, -1.90], s: 0.82, mat: matTreeCanopyLit },
+      { pos: [-1.40, 4.10, 1.10], s: 0.78, mat: matTreeCanopyLit },
+      { pos: [1.35, 4.15, -1.05], s: 0.80, mat: matTreeCanopy },
+    ];
+    tufts.forEach((t) => {
+      const tm = new THREE.Mesh(treeTuftGeo, t.mat);
+      tm.position.set(t.pos[0], t.pos[1], t.pos[2]);
+      tm.scale.setScalar(t.s);
+      tm.visible = hiddenLinesEnabled;
+      occlusionMeshes.push(tm);
+      group.add(tm);
     });
 
     scene.add(group);
