@@ -110,7 +110,8 @@ import './config.js';
   });
 
   const matGrass = new THREE.MeshBasicMaterial({
-    color: 0xd6ead2,
+    color: 0x5ca149,
+    side: THREE.DoubleSide,
     polygonOffset: true,
     polygonOffsetFactor: 1.5,
     polygonOffsetUnits: 1.5,
@@ -121,8 +122,59 @@ import './config.js';
   });
 
   const matLeafBroad = new THREE.MeshBasicMaterial({
-    color: 0x9bd16b, // Hojas anchas tropicales (ave del paraíso / platanillo) bajo escalera
+    color: 0x4b943a, // Hojas anchas tropicales verde intenso (ave del paraíso / platanillo)
     side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matLeafOlive = new THREE.MeshBasicMaterial({
+    color: 0x356e2b, // Follaje sombreado natural en capas internas
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matSoilDark = new THREE.MeshBasicMaterial({
+    color: 0x3a2b20, // Tierra y mantillo orgánico dentro de los maceteros
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matTrunkBark = new THREE.MeshBasicMaterial({
+    color: 0x524034, // Troncos y ramas naturales de árboles de la pasarela
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matTreeCanopy = new THREE.MeshBasicMaterial({
+    color: 0x295927, // Copa densa de árbol exterior (tono base)
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matTreeCanopyLit = new THREE.MeshBasicMaterial({
+    color: 0x3d7d34, // Copa exterior iluminada en ramas altas
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matBannerGreen = new THREE.MeshBasicMaterial({
+    color: 0x1e9e49, // Banderola verde institucional
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1.5,
+    polygonOffsetUnits: 1.5,
+  });
+
+  const matNavy3D = new THREE.MeshBasicMaterial({
+    color: 0x243662, // Azul institucional UNAM para isotipo 3D en fachada
     polygonOffset: true,
     polygonOffsetFactor: 1.5,
     polygonOffsetUnits: 1.5,
@@ -217,6 +269,35 @@ import './config.js';
     polygonOffsetFactor: 1.5,
     polygonOffsetUnits: 1.5,
   });
+
+  // Textura procedural de duelas verticales de madera cálida (cero carga externa, 120 FPS)
+  function createWoodSlatMaterial() {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = '#6c4226';
+    g.fillRect(0, 0, 256, 256);
+    const slats = 12;
+    const w = 256 / slats;
+    const tones = ['#734729', '#673d21', '#7b4e2f', '#5d371e', '#6f4427', '#784b2d'];
+    for (let i = 0; i < slats; i++) {
+      g.fillStyle = tones[i % tones.length];
+      g.fillRect(i * w, 0, w - 2, 256);
+      g.fillStyle = 'rgba(42, 22, 10, 0.22)';
+      g.fillRect(i * w + 3, 0, 2, 256);
+      g.fillStyle = 'rgba(255, 220, 185, 0.08)';
+      g.fillRect(i * w + 8, 0, 3, 256);
+      g.fillStyle = '#331c0d';
+      g.fillRect((i + 1) * w - 2, 0, 2, 256);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(9, 1);
+    return new THREE.MeshBasicMaterial({ map: tex });
+  }
+  const matWoodSlats = createWoodSlatMaterial();
 
   const matBookSpines = new THREE.MeshBasicMaterial({
     color: 0x3b4c60, // Lomos de libros en el estante de Admisión/CEPRE
@@ -550,13 +631,42 @@ import './config.js';
     scene.add(group);
   }
 
-  // Macetero cilíndrico color terracota con hojas lanceoladas arqueadas reales (no cubos)
+  // Hoja botánica curva orgánicamente (sin aristas poligonales ni jaulas negras)
+  function createArchedLeafGeometry(maxWidth, length, archForward = 0.28, segs = 7) {
+    const positions = [];
+    const indices = [];
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      const profile = i === segs ? 0.0 : Math.sin(Math.pow(t, 0.72) * Math.PI);
+      const halfW = maxWidth * 0.5 * profile;
+      const y = length * (t - 0.12 * Math.pow(t, 2.6));
+      const zBend = archForward * Math.pow(t, 1.85);
+      const vCrease = halfW * 0.14;
+      positions.push(
+        -halfW, y, zBend + vCrease,
+        0, y, zBend,
+        halfW, y, zBend + vCrease
+      );
+    }
+    for (let i = 0; i < segs; i++) {
+      const r0 = i * 3;
+      const r1 = (i + 1) * 3;
+      indices.push(r0, r0 + 1, r1 + 1, r0, r1 + 1, r1);
+      indices.push(r0 + 1, r0 + 2, r1 + 2, r0 + 1, r1 + 2, r1 + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  // Macetero cilíndrico color terracota con hojas lanceoladas arqueadas reales (aspecto natural)
   function addSansevieriaPot(px, yBase, pz) {
     const group = new THREE.Group();
     group.position.set(px, yBase, pz);
 
-    // Maceta cónica con borde superior
-    const potGeo = new THREE.CylinderGeometry(0.28, 0.21, 0.44, 12);
+    const potGeo = new THREE.CylinderGeometry(0.28, 0.21, 0.44, 14);
     const potMesh = new THREE.Mesh(potGeo, matPotTerracotta);
     potMesh.position.y = 0.22;
     potMesh.visible = hiddenLinesEnabled;
@@ -566,155 +676,163 @@ import './config.js';
     potEdges.position.y = 0.22;
     group.add(potEdges);
 
-    // Tierra oscura dentro de la maceta
-    const soilGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.04, 12);
-    const soilMesh = new THREE.Mesh(soilGeo, matDarkSeat);
+    const soilGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.04, 14);
+    const soilMesh = new THREE.Mesh(soilGeo, matSoilDark);
     soilMesh.position.y = 0.43;
     soilMesh.visible = hiddenLinesEnabled;
     occlusionMeshes.push(soilMesh);
     group.add(soilMesh);
 
-    // 11 hojas largas delgadas en abanico con distintos ángulos de inclinación (como lengua de suegra real)
-    const leafCount = 11;
+    const sansevieriaLeafGeo = createArchedLeafGeometry(0.11, 1.05, 0.14, 6);
+    const leafCount = 13;
     for (let i = 0; i < leafCount; i++) {
       const yaw = (i / leafCount) * Math.PI * 2 + (i % 2) * 0.22;
-      const tilt = 0.10 + (i % 4) * 0.07; // Inclinación hacia afuera en abanico
-      const len = 0.95 + (i % 3) * 0.28;
-      const leafW = 0.075 + (i % 2) * 0.025;
-
-      const bladeGroup = new THREE.Group();
-      bladeGroup.rotation.y = yaw;
-      bladeGroup.position.set(Math.sin(yaw) * 0.05, 0.44, Math.cos(yaw) * 0.05);
-
-      // Lámina estrecha afilándose en la punta superior
-      const leafGeo = new THREE.ConeGeometry(leafW, len, 4);
-      leafGeo.scale(1.0, 1.0, 0.16);
-      const leafMesh = new THREE.Mesh(leafGeo, matGrass);
-      leafMesh.position.y = len * 0.48;
-      leafMesh.rotation.x = tilt;
-      leafMesh.visible = hiddenLinesEnabled;
-      occlusionMeshes.push(leafMesh);
-      bladeGroup.add(leafMesh);
-
-      const leafEdges = new THREE.LineSegments(new THREE.EdgesGeometry(leafGeo), matWireGreen);
-      leafEdges.position.y = len * 0.48;
-      leafEdges.rotation.x = tilt;
-      bladeGroup.add(leafEdges);
-
-      group.add(bladeGroup);
+      const tilt = 0.08 + (i % 4) * 0.06;
+      const s = 0.85 + (i % 3) * 0.20;
+      const bladeMesh = new THREE.Mesh(sansevieriaLeafGeo, i % 3 === 0 ? matLeafOlive : matLeafBroad);
+      bladeMesh.scale.setScalar(s);
+      bladeMesh.position.set(Math.sin(yaw) * 0.06, 0.44, Math.cos(yaw) * 0.06);
+      bladeMesh.rotation.set(tilt, yaw, 0, 'YXZ');
+      bladeMesh.visible = hiddenLinesEnabled;
+      occlusionMeshes.push(bladeMesh);
+      group.add(bladeMesh);
     }
 
     scene.add(group);
   }
 
-  // Jardín tropical completo bajo las escaleras (como Foto 3): hojas anchas atrás, matas densas, drácenas rojizas y agapantos morados
+  // Jardín tropical natural bajo las escaleras: capas frondosas arqueadas, tierra orgánica y agapantos en ramillete
   function addTropicalPlanterGarden(gXMin, gXMax, ySurface, gZMin, gZMax, backSide = 'east') {
     const group = new THREE.Group();
-    const spanX = Math.max(0.8, gXMax - gXMin - 0.5);
-    const spanZ = Math.max(0.8, gZMax - gZMin - 0.5);
+    const spanX = Math.max(0.8, gXMax - gXMin - 0.36);
+    const spanZ = Math.max(0.8, gZMax - gZMin - 0.36);
     const alongZ = backSide === 'east';
-    const slots = 7;
+    const slots = 9;
 
-    // Geometrías reutilizables para mantener 120 FPS fluidos
-    const broadLeafGeo = new THREE.ConeGeometry(0.18, 1.55, 4);
-    broadLeafGeo.scale(1.25, 1.0, 0.08);
-    const grassBladeGeo = new THREE.ConeGeometry(0.055, 0.72, 3);
-    grassBladeGeo.scale(1.0, 1.0, 0.14);
-    const burgundyGeo = new THREE.ConeGeometry(0.06, 0.92, 3);
-    burgundyGeo.scale(1.0, 1.0, 0.14);
-    const flowerHeadGeo = new THREE.IcosahedronGeometry(0.14, 0);
-    const stemGeo = new THREE.CylinderGeometry(0.012, 0.015, 1.25, 4);
+    // Cama orgánica de tierra oscura cubriendo el interior del macetero
+    const soilMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(Math.max(0.6, gXMax - gXMin - 0.16), 0.04, Math.max(0.6, gZMax - gZMin - 0.16)),
+      matSoilDark
+    );
+    soilMesh.position.set((gXMin + gXMax) / 2, ySurface + 0.015, (gZMin + gZMax) / 2);
+    soilMesh.visible = hiddenLinesEnabled;
+    occlusionMeshes.push(soilMesh);
+    group.add(soilMesh);
 
-    const addBlade = (px, py, pz, geo, matFill, matEdge, yaw, tilt, s = 1.0) => {
-      const wrap = new THREE.Group();
-      wrap.position.set(px, py, pz);
-      wrap.rotation.y = yaw;
+    const broadLeafGeo = createArchedLeafGeometry(0.32, 1.55, 0.46, 8);
+    const bushBladeGeo = createArchedLeafGeometry(0.085, 0.78, 0.34, 7);
+    const burgundyLeafGeo = createArchedLeafGeometry(0.11, 0.96, 0.30, 7);
+    const flowerFloretGeo = new THREE.SphereGeometry(0.036, 7, 5);
+    const stemSegGeo = new THREE.CylinderGeometry(0.010, 0.014, 0.34, 5);
+
+    const addCurvedLeaf = (px, py, pz, geo, matFill, yaw, tilt, s = 1.0) => {
       const m = new THREE.Mesh(geo, matFill);
       m.scale.setScalar(s);
-      m.position.y = geo.parameters.height * s * 0.45;
-      m.rotation.x = tilt;
+      m.position.set(px, py, pz);
+      m.rotation.set(tilt, yaw, 0, 'YXZ');
       m.visible = hiddenLinesEnabled;
       occlusionMeshes.push(m);
-      wrap.add(m);
-      const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), matEdge);
-      e.scale.setScalar(s);
-      e.position.copy(m.position);
-      e.rotation.x = tilt;
-      wrap.add(e);
-      group.add(wrap);
+      group.add(m);
     };
 
     for (let i = 0; i < slots; i++) {
       const t = (i + 0.5) / slots;
-      const bx = alongZ ? gXMax - 0.48 - (i % 2) * 0.32 : gXMin + 0.25 + t * spanX;
-      const bz = alongZ ? gZMin + 0.25 + t * spanZ : gZMin + 0.48 + (i % 2) * 0.30;
-      const fx = alongZ ? gXMin + 0.45 + (i % 3) * 0.38 : gXMin + 0.25 + t * spanX;
-      const fz = alongZ ? gZMin + 0.25 + t * spanZ : gZMax - 0.45 - (i % 3) * 0.34;
+      const bx = alongZ ? gXMax - 0.48 - (i % 2) * 0.28 : gXMin + 0.22 + t * spanX;
+      const bz = alongZ ? gZMin + 0.22 + t * spanZ : gZMin + 0.48 + (i % 2) * 0.26;
+      const fx = alongZ ? gXMin + 0.42 + (i % 3) * 0.32 : gXMin + 0.22 + t * spanX;
+      const fz = alongZ ? gZMin + 0.22 + t * spanZ : gZMax - 0.42 - (i % 3) * 0.30;
       const midX = (bx + fx) * 0.5;
       const midZ = (bz + fz) * 0.5;
 
-      // 1) Abanico trasero de hojas anchas verdes (platanillo / ave del paraíso)
-      for (let k = -1; k <= 1; k++) {
-        const baseYaw = alongZ ? -Math.PI / 2 : 0;
-        addBlade(
-          bx + (alongZ ? 0 : k * 0.10),
-          ySurface,
-          bz + (alongZ ? k * 0.10 : 0),
+      // 1) Abanicos densos de hojas anchas tropicales (platanillo / ave del paraíso)
+      const baseYaw = alongZ ? -Math.PI / 2 : 0;
+      for (let k = -2; k <= 2; k++) {
+        addCurvedLeaf(
+          bx + (alongZ ? 0 : k * 0.06),
+          ySurface + 0.03,
+          bz + (alongZ ? k * 0.06 : 0),
           broadLeafGeo,
-          matLeafBroad,
-          matWireGreen,
-          baseYaw + k * 0.42 + (i % 2) * 0.15,
-          0.16 + Math.abs(k) * 0.14,
-          0.95 + (i % 2) * 0.22
+          k % 2 === 0 ? matLeafBroad : matLeafOlive,
+          baseYaw + k * 0.34 + (i % 3) * 0.12,
+          0.12 + Math.abs(k) * 0.11,
+          0.88 + ((i + Math.abs(k)) % 3) * 0.14
         );
       }
 
-      // 2) Rosetas delanteras frondosas de hojas alargadas verdes en todo el borde del macetero
-      for (let j = 0; j < 6; j++) {
-        const yaw = (j / 6) * Math.PI * 2 + i * 0.55;
-        addBlade(
-          fx + Math.sin(yaw) * 0.08,
-          ySurface,
-          fz + Math.cos(yaw) * 0.08,
-          grassBladeGeo,
-          matGrass,
-          matWireGreen,
+      // 2) Matas frondosas delanteras en cascada natural (sin triángulos duros)
+      for (let j = 0; j < 10; j++) {
+        const yaw = (j / 10) * Math.PI * 2 + i * 0.48;
+        const leafMat = j % 3 === 0 ? matLeafOlive : j % 3 === 1 ? matLeafBroad : matGrass;
+        addCurvedLeaf(
+          fx + Math.sin(yaw) * 0.07,
+          ySurface + 0.03,
+          fz + Math.cos(yaw) * 0.07,
+          bushBladeGeo,
+          leafMat,
           yaw,
-          0.35 + (j % 3) * 0.18,
-          0.85 + (j % 2) * 0.28
+          0.18 + (j % 4) * 0.14,
+          0.78 + (j % 3) * 0.16
         );
       }
 
-      // 3) Matas rojizas (drácenas) intercaladas en la zona media
+      // 3) Matas rojizas (drácenas) naturales en la franja media
       if (i % 2 === 1) {
-        for (let r = 0; r < 5; r++) {
-          const ryaw = (r / 5) * Math.PI * 2 + 0.3;
-          addBlade(midX, ySurface, midZ, burgundyGeo, matLeafBurgundy, matWireDark, ryaw, 0.32 + (r % 2) * 0.18, 0.9);
+        for (let r = 0; r < 8; r++) {
+          const ryaw = (r / 8) * Math.PI * 2 + 0.25;
+          addCurvedLeaf(
+            midX + Math.sin(ryaw) * 0.05,
+            ySurface + 0.03,
+            midZ + Math.cos(ryaw) * 0.05,
+            burgundyLeafGeo,
+            matLeafBurgundy,
+            ryaw,
+            0.22 + (r % 3) * 0.14,
+            0.84 + (r % 2) * 0.18
+          );
         }
       }
 
-      // 4) Varas altas con flores esféricas moradas (agapantos)
-      if (i % 2 === 0 || i === 3) {
-        const stH = 1.05 + (i % 3) * 0.18;
-        const fxP = midX + (alongZ ? -0.18 : 0.12);
-        const fzP = midZ + (alongZ ? 0.12 : 0.18);
-        const tiltZ = alongZ ? 0.12 : (i % 2 === 0 ? 0.08 : -0.08);
-        const stMesh = new THREE.Mesh(stemGeo, matGrass);
-        stMesh.scale.y = stH;
-        stMesh.position.set(fxP, ySurface + (1.25 * stH) / 2, fzP);
-        stMesh.rotation.z = tiltZ;
-        stMesh.visible = hiddenLinesEnabled;
-        occlusionMeshes.push(stMesh);
-        group.add(stMesh);
-
-        const flMesh = new THREE.Mesh(flowerHeadGeo, matFlowerPurple);
-        flMesh.position.set(fxP - Math.sin(tiltZ) * 1.25 * stH * 0.5, ySurface + 1.25 * stH, fzP);
-        flMesh.visible = hiddenLinesEnabled;
-        occlusionMeshes.push(flMesh);
-        group.add(flMesh);
-        const flEdges = new THREE.LineSegments(new THREE.EdgesGeometry(flowerHeadGeo), matWirePurple);
-        flEdges.position.copy(flMesh.position);
-        group.add(flEdges);
+      // 4) Varas gráciles curvas con umbelas esféricas de florecillas agapanto
+      if (i % 2 === 0 || i === 4) {
+        const stH = 1.05 + (i % 3) * 0.16;
+        const fxP = midX + (alongZ ? -0.14 : 0.10);
+        const fzP = midZ + (alongZ ? 0.10 : 0.14);
+        const leanAng = alongZ ? -Math.PI / 2 + 0.2 * ((i % 3) - 1) : 0.25 * ((i % 3) - 1);
+        let tipX = fxP;
+        let tipY = ySurface + 0.03;
+        let tipZ = fzP;
+        for (let sIdx = 0; sIdx < 4; sIdx++) {
+          const segTilt = 0.06 + sIdx * 0.07;
+          const segLen = (stH / 4) * 1.02;
+          const dx = Math.sin(leanAng) * Math.sin(segTilt) * segLen;
+          const dz = Math.cos(leanAng) * Math.sin(segTilt) * segLen;
+          const dy = Math.cos(segTilt) * segLen;
+          const stSeg = new THREE.Mesh(stemSegGeo, matLeafOlive);
+          stSeg.scale.y = segLen / 0.34;
+          stSeg.position.set(tipX + dx * 0.5, tipY + dy * 0.5, tipZ + dz * 0.5);
+          stSeg.rotation.set(segTilt, leanAng, 0, 'YXZ');
+          stSeg.visible = hiddenLinesEnabled;
+          occlusionMeshes.push(stSeg);
+          group.add(stSeg);
+          tipX += dx;
+          tipY += dy;
+          tipZ += dz;
+        }
+        // Ramillete de 9 florecillas redondeadas por umbela
+        for (let f = 0; f < 9; f++) {
+          const fYaw = (f / 8) * Math.PI * 2;
+          const fElev = f === 0 ? 1.0 : 0.35 + (f % 2) * 0.35;
+          const rad = f === 0 ? 0.0 : 0.09;
+          const fl = new THREE.Mesh(flowerFloretGeo, matFlowerPurple);
+          fl.position.set(
+            tipX + Math.sin(fYaw) * rad,
+            tipY + fElev * 0.055,
+            tipZ + Math.cos(fYaw) * rad
+          );
+          fl.visible = hiddenLinesEnabled;
+          occlusionMeshes.push(fl);
+          group.add(fl);
+        }
       }
     }
 
@@ -1193,19 +1311,25 @@ import './config.js';
           addServiceGlassSegment(19.0, 51.0, 27.0, 46.2, 4, y0 + 1.25, y0 + 2.35);
           addServiceGlassSegment(27.0, 46.2, 45.74, 46.2, 7, y0 + 1.25, y0 + 2.35);
 
-          // Fotos 2, 4 y 5: Muro posterior con revestimiento vertical de madera cálida
-          // delimitando el área interna de trabajo de Mesa de Partes (z: 49.5..50.8, x: 20.0..45.6)
-          addBoxByBounds(20.0, 45.6, y0, y0 + 2.95, 49.65, 49.92, matWireDark, true, matWarmWood);
-          // Letras institucionales plateadas en relieve sobre el panel de madera: "UNIVERSIDAD NACIONAL DE MOQUEGUA"
-          const woodLogoSign = createArchitecturalSign(
+          // Muro posterior tras Mesa de Partes al ras del fondo (x: 23.5..45.72, z: 50.80..50.99)
+          // con duelas verticales de madera cálida y textura real (cero bloque sobresaliendo en la esquina diagonal)
+          addBoxByBounds(23.5, 45.72, y0, y0 + 4.15, 50.80, 50.99, matWireDark, true, matWoodSlats);
+          addBoxByBounds(23.5, 45.72, y0 + 4.08, y0 + 4.22, 50.74, 50.99, matWireDark, true, matSilver);
+          for (let rx = 24.8; rx <= 44.8; rx += 1.25) {
+            addBoxByBounds(rx - 0.04, rx + 0.04, y0 + 0.05, y0 + 4.08, 50.76, 50.81, matWireDark, true, matWarmWood);
+          }
+          // Letras 3D con volumen/profundidad reales (sin cartel) montadas directo sobre la madera
+          const woodLogo3D = createExtrudedText3D(
             ['UNIVERSIDAD NACIONAL', 'DE MOQUEGUA'],
-            3.8,
-            0.65,
-            false
+            6.2,
+            1.15,
+            0.14,
+            '#edf2f7',
+            '#74808f'
           );
-          woodLogoSign.position.set(33.0, y0 + 2.15, 49.62);
-          woodLogoSign.rotation.y = Math.PI;
-          scene.add(woodLogoSign);
+          woodLogo3D.position.set(34.6, y0 + 3.02, 50.73);
+          woodLogo3D.rotation.y = Math.PI;
+          scene.add(woodLogo3D);
 
           // Foto 5: Postes separadores de fila (catenarias / stanchions metálicos con cinta roja)
           if (piso.id === 1) {
@@ -1243,7 +1367,26 @@ import './config.js';
         const isEntrancePorticoGlass =
           mv.x1 < 13.0 && (Math.abs(mv.z1 - 59.8) < 0.05 || Math.abs(mv.x1 - 5.8) < 0.05);
         if (piso.id > 1 && isEntrancePorticoGlass) return;
-        addGlassWallSegment(mv.x1, mv.z1, mv.x2, mv.z2, mv.panos || 4, y0, y1);
+        const isOTIGlass =
+          Math.abs(mv.z1 - 46.5) < 0.05 && Math.abs(mv.z2 - 46.5) < 0.05 && mv.x1 >= 58.9 && mv.x2 <= 76.1;
+        addGlassWallSegment(mv.x1, mv.z1, mv.x2, mv.z2, mv.panos || 4, y0, isOTIGlass ? y0 + 4.25 : y1);
+      });
+
+      // Dintel superior sólido de OTI sobre la mampara (4.25 m .. 7.28 m) + mobiliario interior visible a través del vidrio
+      addBoxByBounds(59.0, 76.0, y0 + 4.25, y1 - 0.22, 46.38, 46.62, matWireDark, true);
+      addBoxByBounds(59.0, 76.0, y0 + 4.21, y0 + 4.30, 46.34, 46.64, matWireDark, true, matSilver);
+      // Interior amoblado de OTI (escritorios de soporte TI, monitores, sillas y racks al fondo)
+      [61.5, 65.2, 69.8, 73.2].forEach((dx) => {
+        addBoxByBounds(dx - 0.9, dx + 0.9, y0 + 0.72, y0 + 0.78, 51.0, 51.9, matWireDark, true, matCeilingSlab);
+        addBoxByBounds(dx - 0.85, dx - 0.80, y0, y0 + 0.72, 51.05, 51.85, matWireDark, true, matDarkSeat);
+        addBoxByBounds(dx + 0.80, dx + 0.85, y0, y0 + 0.72, 51.05, 51.85, matWireDark, true, matDarkSeat);
+        addBoxByBounds(dx - 0.28, dx + 0.28, y0 + 0.86, y0 + 1.24, 51.40, 51.46, matWireDark, true, matDarkSeat);
+        addBoxByBounds(dx - 0.26, dx + 0.26, y0, y0 + 0.48, 52.35, 52.85, matWireDark, true, matDarkSeat);
+        addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.48, y0 + 1.02, 52.78, 52.88, matWireDark, true, matDarkSeat);
+      });
+      // Racks / archivadores al fondo Sur de OTI (visibles tras el vidrio)
+      [60.6, 63.0, 65.4, 70.6, 73.0].forEach((rx) => {
+        addBoxByBounds(rx, rx + 1.8, y0, y0 + 2.25, 57.7, 58.48, matWireDark, true, matSilver);
       });
 
       // Puertas en este piso: solo las puertas de vidrio (abiertaDoble) quedan abiertas; puertas de oficina CERRADAS
@@ -1400,15 +1543,13 @@ import './config.js';
     addWaitingBench(9.65, y0, 45.2, 4, Math.PI / 2);
     addWaitingBench(9.65, y0, 35.0, 4, Math.PI / 2);
 
-    // 3) pasadizo.jpg + Foto 2: falso techo curvo/ovalado en el cielo raso del hall central y vitrina en Mesa de Partes
+    // 3) pasadizo.jpg + Foto 2: falso techo curvo/ovalado en el cielo raso del hall central
     const ovalPts = [];
     for (let i = 0; i <= 40; i++) {
       const ang = (i / 40) * Math.PI * 2;
       ovalPts.push(new THREE.Vector3(28.0 + Math.cos(ang) * 9.5, y0 + H - 0.32, 39.5 + Math.sin(ang) * 5.2));
     }
     scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(ovalPts), matWireDark));
-    //    - Vitrina de madera/anuncios al costado del mostrador de Mesa de Partes
-    addBoxByBounds(27.0, 28.3, y0 + 1.25, y0 + 2.75, 46.25, 46.45, matWireGold, true);
 
     // 4) Rampa doble de 4 cuadros de ancho cada tramo (x: 12.0..20.5) con puertas dobles abiertas:
     addDoubleGlassDoor(14.0, y0, 28.0, 3.8, 4.5, 'z');
@@ -1430,8 +1571,8 @@ import './config.js';
     addBoxByBounds(53.86, 54.02, y0, y0 + 3.85, 47.95, 50.05, matWireDark, true, matSilver);
     addBoxByBounds(53.84, 53.90, y0, y0 + 3.85, 48.98, 49.02, matWireDark, false);
     addBoxByBounds(53.88, 53.95, y0 + 1.45, y0 + 1.95, 50.30, 50.47, matWireBlue, true, matSilver);
-    //    - 3 tableros eléctricos grises en fila en el pasadizo hacia OTI (camino_a_oti.jpg)
-    [60.8, 61.8, 62.8].forEach((tx) => {
+    //    - 3 tableros eléctricos grises sobre el muro sólido junto al Elevador (al oeste de la mampara de vidrio OTI)
+    [54.7, 55.8, 56.9].forEach((tx) => {
       addBoxByBounds(tx, tx + 0.78, y0 + 1.25, y0 + 2.45, 46.38, 46.50, matWireDark, true, matSilver);
       addBoxByBounds(tx + 0.24, tx + 0.52, y0 + 1.65, y0 + 1.92, 46.35, 46.38, matWireGold, true);
     });
@@ -1649,29 +1790,54 @@ import './config.js';
       addBoxByBounds(louverX + 0.04, -2.2, H + 0.65, totalH - 1.05, lz - 0.05, lz + 0.05, matWireDark, true);
     }
 
-    //    - 3 Banderolas verticales institucionales (azul, verde y rojo más cercana al pilar de luminarias) como en Foto 5
-    addBoxByBounds(-2.78, -2.70, 0.2, totalH - 2.0, 35.8, 36.25, matWireBlue, true, matBlueWall);
-    addBoxByBounds(-2.78, -2.70, 0.2, totalH - 2.0, 36.9, 37.35, matWireGreen, true, matGrass);
-    addBoxByBounds(-2.78, -2.70, 0.2, totalH - 2.0, 38.0, 38.45, matWireDark, true, matRedSafety);
+    //    - 3 Banderolas largas sujetas juntas arriba en el centro (z=34.0) y cayendo hasta la vereda:
+    //      azul diagonal izquierda, verde vertical al centro y rojo diagonal derecha (foto fachada UNAM)
+    const ribbonTopX = -2.72;
+    const ribbonTopY = totalH - 1.15;
+    const ribbonTopZ = 34.0;
+    const ribbonBotY = -0.58;
+    addHangingFabricRibbon([ribbonTopX, ribbonTopY, ribbonTopZ - 0.14], [-3.12, ribbonBotY, 28.9], 0.44, -0.36, matBlueWall);
+    addHangingFabricRibbon([ribbonTopX, ribbonTopY, ribbonTopZ], [-3.05, ribbonBotY, 34.0], 0.44, -0.30, matBannerGreen);
+    addHangingFabricRibbon([ribbonTopX, ribbonTopY, ribbonTopZ + 0.14], [-3.12, ribbonBotY, 39.1], 0.44, -0.36, matRedSafety);
 
-    //    - Mitad derecha de la cara oeste (z: 40.0 .. 50.8): Cuadrícula de 12 luminarias (4x3) + Logo UNAM arriba
-    addBoxByBounds(-2.26, -2.19, H + 1.1, totalH - 7.8, 40.2, 50.6, matWireDark, false);
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 3; col++) {
-        const bz = 42.2 + col * 2.8;
-        const by = H + 2.4 + row * 3.1;
-        addBoxByBounds(-2.58, -2.2, by - 0.08, by + 0.08, bz - 0.08, bz + 0.08, matWireDark, true, matSilver);
+    //    - Mitad derecha de la cara oeste (z: 40.0 .. 50.8): Relieves inferiores con luminarias + "21 AÑOS" + Letras 3D + Logo UNAM arriba
+    addBoxByBounds(-2.26, -2.19, H + 1.2, H + 11.4, 40.4, 50.4, matWireDark, false);
+    addBoxByBounds(-2.26, -2.19, H + 11.8, totalH - 1.0, 40.4, 50.4, matWireDark, false);
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 4; col++) {
+        const bz = 41.6 + col * 2.5;
+        const by = H + 2.6 + row * 3.1;
+        addBoxByBounds(-2.54, -2.20, by - 0.08, by + 0.08, bz - 0.08, bz + 0.08, matWireDark, true, matSilver);
       }
     }
-    const unamLogoSign = createArchitecturalSign(
+    const emblemUNAM = createUNAMEmblem3D();
+    emblemUNAM.position.set(-2.24, totalH - 2.6, 45.4);
+    emblemUNAM.rotation.y = -Math.PI / 2;
+    scene.add(emblemUNAM);
+
+    const facadeTitle3D = createExtrudedText3D(
       ['UNIVERSIDAD', 'NACIONAL DE', 'MOQUEGUA'],
-      4.4,
-      2.3,
-      true
+      8.6,
+      3.45,
+      0.26,
+      '#243662',
+      '#131d38'
     );
-    unamLogoSign.position.set(-2.28, totalH - 4.4, 45.4);
-    unamLogoSign.rotation.y = -Math.PI / 2;
-    scene.add(unamLogoSign);
+    facadeTitle3D.position.set(-2.26, totalH - 6.0, 45.4);
+    facadeTitle3D.rotation.y = -Math.PI / 2;
+    scene.add(facadeTitle3D);
+
+    const facadeYears3D = createExtrudedText3D(
+      ['21 AÑOS'],
+      7.2,
+      2.15,
+      0.22,
+      '#243662',
+      '#131d38'
+    );
+    facadeYears3D.position.set(-2.26, totalH - 9.4, 45.4);
+    facadeYears3D.rotation.y = -Math.PI / 2;
+    scene.add(facadeYears3D);
 
     // 4) CARA SUR FRONTAL (z = 52.0 .. 59.8, girando 90° a la derecha en la esquina -> Fotos 4 y 5)
     //    a) Tramo izquierdo retranqueado con ventanas horizontales y antepechos blancos en los 4 pisos (x: -0.9 .. 5.8, z = 52.05)
@@ -1725,11 +1891,8 @@ import './config.js';
       addBoxByBounds(46.0, 93.0, yFl, yFl + 0.45, 59.45, 59.68, matWireDark, true, matTeal);
     }
 
-    // 5) Árboles en fila por la vereda sur a la derecha de la entrada
-    [21.0, 31.0, 41.0, 51.0, 61.0].forEach((tx) => {
-      addBoxByBounds(tx - 0.14, tx + 0.14, -0.60, 1.9, 66.0, 66.28, matWireDark, true); // Tronco
-      addBoxByBounds(tx - 0.95, tx + 0.95, 1.9, 3.8, 65.2, 67.1, matWireGreen, true, matGrass); // Copa
-    });
+    // 5) Pasarela exterior con árboles grandes frondosos en jardineras, luminarias y gradas curvas de esquina
+    buildExteriorTreeWalkway();
 
     // 6) Reja perimétrica exterior sobre el terreno (-0.60 m)
     const fenceZ = 70.5;
@@ -1743,6 +1906,229 @@ import './config.js';
 
     // 7) Caseta de azotea sobre el 4to piso
     addBoxByBounds(14.0, 32.0, totalH, totalH + 4.5, 32.0, 46.0, matWireDark, true);
+  }
+
+  // Letras arquitectónicas 3D con volumen y profundidad reales (sin tablero ni marco de cartel)
+  function createExtrudedText3D(
+    lineasTexto,
+    widthMeters,
+    heightMeters,
+    depthMeters = 0.22,
+    frontColor = '#243662',
+    sideColor = '#141e3b'
+  ) {
+    const linesArr = Array.isArray(lineasTexto) ? lineasTexto : [String(lineasTexto)];
+    const group = new THREE.Group();
+    const aspect = widthMeters / Math.max(heightMeters, 0.1);
+    const canvasH = 260;
+    const canvasW = Math.max(260, Math.round(canvasH * aspect));
+
+    const drawLettersTexture = (fillStyle) => {
+      const c = document.createElement('canvas');
+      c.width = canvasW;
+      c.height = canvasH;
+      const g = c.getContext('2d');
+      g.clearRect(0, 0, canvasW, canvasH);
+      g.fillStyle = fillStyle;
+      const fontSize = linesArr.length === 1 ? 150 : linesArr.length === 2 ? 96 : 68;
+      g.font = `800 ${fontSize}px Inter, "Segoe UI", Arial, sans-serif`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      const lineHeight = fontSize * 1.12;
+      const totalH = lineHeight * (linesArr.length - 1);
+      const startY = canvasH / 2 - totalH / 2;
+      linesArr.forEach((line, idx) => {
+        g.fillText(line, canvasW / 2, startY + idx * lineHeight, canvasW - 24);
+      });
+      return new THREE.CanvasTexture(c);
+    };
+
+    const planeGeo = new THREE.PlaneGeometry(widthMeters, heightMeters);
+    const sideMat = new THREE.MeshBasicMaterial({
+      map: drawLettersTexture(sideColor),
+      alphaTest: 0.35,
+      side: THREE.DoubleSide,
+    });
+    const frontMat = new THREE.MeshBasicMaterial({
+      map: drawLettersTexture(frontColor),
+      alphaTest: 0.35,
+      side: THREE.DoubleSide,
+    });
+
+    const layers = 6;
+    for (let i = 0; i < layers; i++) {
+      const m = new THREE.Mesh(planeGeo, sideMat);
+      m.position.z = (i / layers) * depthMeters;
+      group.add(m);
+    }
+    const frontMesh = new THREE.Mesh(planeGeo, frontMat);
+    frontMesh.position.z = depthMeters + 0.005;
+    group.add(frontMesh);
+    return group;
+  }
+
+  // Isotipo 3D extruido UNAM (curva azul marino + trazo turquesa interior como en fachada real)
+  function createUNAMEmblem3D() {
+    const group = new THREE.Group();
+    const extrudeOpts = { depth: 0.28, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, curveSegments: 16 };
+
+    const navyShape = new THREE.Shape();
+    navyShape.moveTo(-2.4, 1.3);
+    navyShape.lineTo(-1.35, 1.3);
+    navyShape.quadraticCurveTo(-1.3, -0.35, 0.1, -0.35);
+    navyShape.quadraticCurveTo(1.5, -0.35, 1.55, 1.55);
+    navyShape.lineTo(2.45, 1.55);
+    navyShape.quadraticCurveTo(2.45, -1.25, 0.1, -1.25);
+    navyShape.quadraticCurveTo(-2.4, -1.25, -2.4, 1.3);
+    const navyGeo = new THREE.ExtrudeGeometry(navyShape, extrudeOpts);
+    const navyMesh = new THREE.Mesh(navyGeo, matNavy3D);
+    navyMesh.visible = hiddenLinesEnabled;
+    occlusionMeshes.push(navyMesh);
+    group.add(navyMesh);
+
+    const tealShape = new THREE.Shape();
+    tealShape.moveTo(-0.85, 0.95);
+    tealShape.lineTo(0.05, 0.95);
+    tealShape.quadraticCurveTo(0.15, 0.25, 0.68, 0.25);
+    tealShape.quadraticCurveTo(1.15, 0.25, 1.18, 1.35);
+    tealShape.lineTo(1.85, 1.35);
+    tealShape.quadraticCurveTo(1.82, -0.45, 0.65, -0.45);
+    tealShape.quadraticCurveTo(-0.85, -0.45, -0.85, 0.95);
+    const tealGeo = new THREE.ExtrudeGeometry(tealShape, extrudeOpts);
+    const tealMesh = new THREE.Mesh(tealGeo, matTeal);
+    tealMesh.position.z = 0.04;
+    tealMesh.visible = hiddenLinesEnabled;
+    occlusionMeshes.push(tealMesh);
+    group.add(tealMesh);
+
+    group.scale.setScalar(0.95);
+    return group;
+  }
+
+  // Banderola textil continua suspendida en abanico desde un punto alto hasta la vereda
+  function addHangingFabricRibbon(topPt, botPt, halfW, bulgeOutX, mat) {
+    const segs = 8;
+    const positions = [];
+    const indices = [];
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      const px = topPt[0] + (botPt[0] - topPt[0]) * t + Math.sin(t * Math.PI) * bulgeOutX;
+      const py = topPt[1] + (botPt[1] - topPt[1]) * t;
+      const pz = topPt[2] + (botPt[2] - topPt[2]) * t;
+      const hw = halfW * (0.45 + 0.55 * t);
+      positions.push(px, py, pz - hw, px, py, pz + hw);
+    }
+    for (let i = 0; i < segs; i++) {
+      const a = i * 2;
+      const b = a + 2;
+      indices.push(a, a + 1, b + 1, a, b + 1, b);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.visible = hiddenLinesEnabled;
+    occlusionMeshes.push(mesh);
+    scene.add(mesh);
+  }
+
+  // Árbol grande natural con tronco ramificado y copa frondosa orgánica (cero cubos ni líneas duras)
+  function addNaturalShadeTree(tx, yBase, tz, scale = 1.0) {
+    const group = new THREE.Group();
+    group.position.set(tx, yBase, tz);
+    group.scale.setScalar(scale);
+
+    const trunkMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 2.3, 8), matTrunkBark);
+    trunkMesh.position.y = 1.15;
+    trunkMesh.visible = hiddenLinesEnabled;
+    occlusionMeshes.push(trunkMesh);
+    group.add(trunkMesh);
+
+    const branches = [
+      { yaw: 0.2, tilt: 0.48, len: 1.55 },
+      { yaw: 1.8, tilt: 0.52, len: 1.65 },
+      { yaw: 3.3, tilt: 0.45, len: 1.50 },
+      { yaw: 4.9, tilt: 0.50, len: 1.60 },
+    ];
+    branches.forEach((b) => {
+      const br = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, b.len, 6), matTrunkBark);
+      br.position.set(
+        Math.sin(b.yaw) * Math.sin(b.tilt) * b.len * 0.45,
+        2.05 + Math.cos(b.tilt) * b.len * 0.45,
+        Math.cos(b.yaw) * Math.sin(b.tilt) * b.len * 0.45
+      );
+      br.rotation.set(b.tilt, b.yaw, 0, 'YXZ');
+      br.visible = hiddenLinesEnabled;
+      occlusionMeshes.push(br);
+      group.add(br);
+    });
+
+    const clusters = [
+      { pos: [0.0, 3.65, 0.0], r: [1.85, 1.05, 1.85], mat: matTreeCanopy },
+      { pos: [-1.15, 3.35, 0.55], r: [1.35, 0.88, 1.30], mat: matTreeCanopyLit },
+      { pos: [1.20, 3.30, -0.45], r: [1.40, 0.90, 1.35], mat: matTreeCanopy },
+      { pos: [0.40, 3.45, 1.25], r: [1.30, 0.85, 1.25], mat: matLeafOlive },
+      { pos: [-0.45, 3.40, -1.20], r: [1.35, 0.85, 1.30], mat: matTreeCanopyLit },
+      { pos: [0.0, 4.35, 0.10], r: [1.35, 0.80, 1.35], mat: matTreeCanopyLit },
+    ];
+    const unitCrownGeo = new THREE.IcosahedronGeometry(1.0, 1);
+    clusters.forEach((c) => {
+      const m = new THREE.Mesh(unitCrownGeo, c.mat);
+      m.position.set(c.pos[0], c.pos[1], c.pos[2]);
+      m.scale.set(c.r[0], c.r[1], c.r[2]);
+      m.visible = hiddenLinesEnabled;
+      occlusionMeshes.push(m);
+      group.add(m);
+    });
+
+    scene.add(group);
+  }
+
+  // Pasarela exterior con jardineras elevadas, alameda de árboles grandes, postes luminarios y gradas curvas
+  function buildExteriorTreeWalkway() {
+    // Jardineras cuadradas de concreto + árboles frondosos por toda la alameda sur y oeste
+    const southTrees = [21.0, 31.0, 41.0, 51.0, 61.0, 72.0, 83.0];
+    southTrees.forEach((tx, idx) => {
+      addBoxByBounds(tx - 1.35, tx + 1.35, -0.60, -0.22, 64.9, 67.6, matWireDark, true, matCeilingSlab);
+      addBoxByBounds(tx - 1.22, tx + 1.22, -0.22, -0.18, 65.02, 67.48, matWireGreen, true, matGrass);
+      addNaturalShadeTree(tx, -0.20, 66.25, 0.95 + (idx % 2) * 0.14);
+    });
+
+    // Pasarela lineal arbolada frente al lado izquierdo / oeste (z: 30..58, x = -9.2)
+    addBoxByBounds(-10.4, -8.0, -0.60, -0.24, 30.0, 58.0, matWireDark, true, matCeilingSlab);
+    addBoxByBounds(-10.25, -8.15, -0.24, -0.20, 30.2, 57.8, matWireGreen, true, matGrass);
+    [34.0, 44.0, 54.0].forEach((tz, idx) => {
+      addNaturalShadeTree(-9.2, -0.22, tz, 1.05 + (idx % 2) * 0.12);
+    });
+
+    // Faroles peatonales oscuros con disco superior a lo largo de la alameda
+    [18.0, 36.0, 56.0, 77.0].forEach((lx) => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 3.8, 8), matDarkSeat);
+      pole.position.set(lx, 1.30, 64.2);
+      pole.visible = hiddenLinesEnabled;
+      occlusionMeshes.push(pole);
+      scene.add(pole);
+      const lampTop = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.28, 0.12, 12), matDarkSeat);
+      lampTop.position.set(lx, 3.22, 64.2);
+      lampTop.visible = hiddenLinesEnabled;
+      occlusionMeshes.push(lampTop);
+      scene.add(lampTop);
+    });
+
+    // Gradas curvas esquineras de acceso en esquina sur-oeste frente a la portada
+    [
+      { r: 5.6, y: -0.50 },
+      { r: 4.8, y: -0.32 },
+      { r: 4.0, y: -0.14 },
+    ].forEach((st) => {
+      const stepGeo = new THREE.CylinderGeometry(st.r, st.r, 0.18, 20, 1, false, 0, Math.PI * 0.55);
+      const stepMesh = new THREE.Mesh(stepGeo, matCeilingSlab);
+      stepMesh.position.set(-0.9, st.y, 60.5);
+      stepMesh.rotation.y = -Math.PI * 0.5;
+      stepMesh.visible = hiddenLinesEnabled;
+      occlusionMeshes.push(stepMesh);
+      scene.add(stepMesh);
+    });
   }
 
   // Crea un cartel 3D nítido con soporte multilínea (1, 2 o 3 líneas) y proporción exacta para que el texto jamás se vea estirado

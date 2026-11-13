@@ -174,7 +174,7 @@ window.UNAM_CONFIG = {
         './multimedia/fotos/OFICINA DE OTI.jpg',
         './multimedia/fotos/camino_a_oti.jpg',
       ],
-      letrero: { lineas: ['OFICINA TECNOLOGÍA', 'E INFORMACIÓN'], pos: [67.5, 4.35, 46.5], rotY: Math.PI, ancho: 1.95, alto: 0.64 },
+      letrero: { lineas: ['OFICINA TECNOLOGÍA', 'E INFORMACIÓN'], pos: [67.5, 4.62, 46.42], rotY: Math.PI, ancho: 2.05, alto: 0.62 },
     },
     secretaria: {
       id: 'secretaria',
@@ -335,8 +335,10 @@ window.UNAM_CONFIG = {
     // Elevador y Baño Sur de 5 bloques de ancho (x: 54.0 .. 59.0) dejando pasillo amplio de 8 bloques (x: 46.0 .. 54.0)
     { nombre: 'ELEVADOR', xMin: 54.0, xMax: 59.0, zMin: 46.5, zMax: 51.5 },
     { nombre: 'BAÑO SUR', xMin: 54.0, xMax: 59.0, zMin: 51.5, zMax: 59.5 },
-    // OTI = 17 bloques de ancho (x: 59.0 .. 76.0); su frente Norte hacia el pasadizo z: 46.5 es de vidrio
-    { nombre: 'OTI (Zona Interior)', xMin: 59.0, xMax: 76.0, zMin: 47.0, zMax: 59.5 },
+    // OTI = 17 bloques de ancho (x: 59.0 .. 76.0); interior abierto con mampara de vidrio en z = 46.5
+    { nombre: 'OTI (Muro Fondo Sur)', xMin: 59.0, xMax: 76.0, zMin: 58.6, zMax: 59.5 },
+    { nombre: 'OTI (Muro Divisorio Oeste)', xMin: 59.0, xMax: 59.35, zMin: 46.5, zMax: 58.6 },
+    { nombre: 'OTI (Muro Divisorio Este)', xMin: 75.65, xMax: 76.0, zMin: 46.5, zMax: 58.6 },
     // SECRETARÍA GENERAL = 17 bloques de ancho (x: 76.0 .. 93.0)
     { nombre: 'SECRETARÍA GENERAL', xMin: 76.0, xMax: 93.0, zMin: 46.5, zMax: 59.5 },
 
@@ -387,7 +389,7 @@ window.UNAM_CONFIG = {
     { nombre: 'Puerta Centros de Producción', pos: [35.0, 1.875, 58.2], tam: [2.5, 3.75, 0.26] },
     { nombre: 'Puerta Doble Sur', pos: [50.0, 2.25, 59.5], tam: [3.6, 4.5, 0.26], abiertaDoble: 'z' },
     { nombre: 'Puerta Doble Frente a OTI', pos: [67.5, 2.25, 38.0], tam: [3.6, 4.5, 0.26], abiertaDoble: 'z' },
-    { nombre: 'Puerta Vidrio OTI', pos: [67.5, 2.25, 46.5], tam: [2.6, 4.5, 0.26], abiertaDoble: 'z' },
+    { nombre: 'Puerta Vidrio OTI', pos: [67.5, 2.125, 46.5], tam: [2.6, 4.25, 0.26], abiertaDoble: 'z' },
     { nombre: 'Puerta Secretaría General', pos: [84.5, 1.875, 46.5], tam: [2.6, 3.75, 0.26] },
     { nombre: 'Puerta Doble Auditorio', pos: [101.0, 1.925, 41.0], tam: [0.28, 3.85, 3.6] },
     { nombre: 'Puerta Salida Sur Auditorio', pos: [97.0, 2.25, 59.5], tam: [3.2, 4.5, 0.26], abiertaDoble: 'z' },
