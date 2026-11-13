@@ -41,10 +41,19 @@ import './config.js';
     return { yaw, pitch };
   }
 
+  function normalizeAngle(a) {
+    let x = a % (Math.PI * 2);
+    if (x > Math.PI) x -= Math.PI * 2;
+    if (x < -Math.PI) x += Math.PI * 2;
+    return x;
+  }
+
+  function shortestAngleDiff(fromAngle, toAngle) {
+    return normalizeAngle(toAngle - fromAngle);
+  }
+
   function lerpAngleShortest(fromAngle, toAngle, alpha) {
-    let diff = ((toAngle - fromAngle + Math.PI) % (Math.PI * 2)) - Math.PI;
-    if (diff < -Math.PI) diff += Math.PI * 2;
-    return fromAngle + diff * alpha;
+    return normalizeAngle(fromAngle + shortestAngleDiff(fromAngle, toAngle) * alpha);
   }
 
   // --------------------------------------------------------------------------
@@ -1367,34 +1376,58 @@ import './config.js';
         const isEntrancePorticoGlass =
           mv.x1 < 13.0 && (Math.abs(mv.z1 - 59.8) < 0.05 || Math.abs(mv.x1 - 5.8) < 0.05);
         if (piso.id > 1 && isEntrancePorticoGlass) return;
-        const isOTIGlass =
-          Math.abs(mv.z1 - 46.5) < 0.05 && Math.abs(mv.z2 - 46.5) < 0.05 && mv.x1 >= 58.9 && mv.x2 <= 76.1;
-        addGlassWallSegment(mv.x1, mv.z1, mv.x2, mv.z2, mv.panos || 4, y0, isOTIGlass ? y0 + 4.25 : y1);
+        addGlassWallSegment(mv.x1, mv.z1, mv.x2, mv.z2, mv.panos || 4, y0, y1);
       });
 
-      // Dintel superior sólido de OTI sobre la mampara (4.25 m .. 7.28 m) + mobiliario interior visible a través del vidrio
-      addBoxByBounds(59.0, 76.0, y0 + 4.25, y1 - 0.22, 46.38, 46.62, matWireDark, true);
-      addBoxByBounds(59.0, 76.0, y0 + 4.21, y0 + 4.30, 46.34, 46.64, matWireDark, true, matSilver);
-      // Interior amoblado de OTI (escritorios de soporte TI, monitores, sillas y racks al fondo)
-      [61.5, 65.2, 69.8, 73.2].forEach((dx) => {
-        addBoxByBounds(dx - 0.9, dx + 0.9, y0 + 0.72, y0 + 0.78, 51.0, 51.9, matWireDark, true, matCeilingSlab);
-        addBoxByBounds(dx - 0.85, dx - 0.80, y0, y0 + 0.72, 51.05, 51.85, matWireDark, true, matDarkSeat);
-        addBoxByBounds(dx + 0.80, dx + 0.85, y0, y0 + 0.72, 51.05, 51.85, matWireDark, true, matDarkSeat);
-        addBoxByBounds(dx - 0.28, dx + 0.28, y0 + 0.86, y0 + 1.24, 51.40, 51.46, matWireDark, true, matDarkSeat);
-        addBoxByBounds(dx - 0.26, dx + 0.26, y0, y0 + 0.48, 52.35, 52.85, matWireDark, true, matDarkSeat);
-        addBoxByBounds(dx - 0.24, dx + 0.24, y0 + 0.48, y0 + 1.02, 52.78, 52.88, matWireDark, true, matDarkSeat);
-      });
-      // Racks / archivadores al fondo Sur de OTI (visibles tras el vidrio)
-      [60.6, 63.0, 65.4, 70.6, 73.0].forEach((rx) => {
-        addBoxByBounds(rx, rx + 1.8, y0, y0 + 2.25, 57.7, 58.48, matWireDark, true, matSilver);
-      });
-
-      // Puertas en este piso: solo las puertas de vidrio (abiertaDoble) quedan abiertas; puertas de oficina CERRADAS
+      // Puertas en este piso: puertas de vidrio de pasadizos abiertas; puerta doble de vidrio de OTI cerrada y oficinas cerradas
       CFG.puertas.forEach((p) => {
         if (p.nombre === 'Puerta Doble Entrada' && piso.id > 1) return;
         if (p.abiertaDoble) {
           const width = p.abiertaDoble === 'z' ? p.tam[0] : p.tam[2];
           addDoubleGlassDoor(p.pos[0], y0, p.pos[2], width, p.tam[1], p.abiertaDoble);
+          return;
+        }
+        if (p.esPuertaVidrioCerrada) {
+          const doorW = p.tam[0];
+          const doorH = p.tam[1];
+          const gGrp = new THREE.Group();
+          gGrp.position.set(p.pos[0], y0, p.pos[2] - 0.14);
+
+          const frameLines = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(doorW, doorH, 0.16)),
+            matWireBlue
+          );
+          frameLines.position.set(0, doorH / 2, 0);
+          gGrp.add(frameLines);
+
+          // Dos hojas de vidrio cerradas con franjas pavonadas y manijas metálicas verticales
+          [-doorW / 4, doorW / 4].forEach((lx) => {
+            const paneW = doorW / 2 - 0.08;
+            const paneMesh = new THREE.Mesh(new THREE.PlaneGeometry(paneW, doorH - 0.10), matCurtainGlass);
+            paneMesh.position.set(lx, doorH / 2, 0);
+            gGrp.add(paneMesh);
+            const leafOutline = new THREE.LineSegments(
+              new THREE.EdgesGeometry(new THREE.BoxGeometry(paneW, doorH - 0.10, 0.05)),
+              matWireDark
+            );
+            leafOutline.position.set(lx, doorH / 2, 0);
+            gGrp.add(leafOutline);
+          });
+
+          [1.15, 1.55, 1.95].forEach((fy) => {
+            const stripe = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 0.14, 0.22), matFrostedGlass);
+            stripe.position.set(0, fy, -0.02);
+            gGrp.add(stripe);
+          });
+
+          [-0.14, 0.14].forEach((hx) => {
+            const handle = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.65, 0.08), matSilver);
+            handle.position.set(hx, 1.45, -0.07);
+            handle.visible = hiddenLinesEnabled;
+            occlusionMeshes.push(handle);
+            gGrp.add(handle);
+          });
+          scene.add(gGrp);
           return;
         }
         const alongZ = p.tam[2] > p.tam[0];
@@ -2213,85 +2246,212 @@ import './config.js';
   }
 
   // --------------------------------------------------------------------------
-  // 4. DIJKSTRA + TRAYECTORIA POR EL CENTRO DE LOS PASILLOS
+  // 4. NAVEGACIÓN A* SIN COLISIONES (EVITA PAREDES, TECHOS, SUELOS Y HUECOS)
   // --------------------------------------------------------------------------
-  function findShortestWalkablePath(startWpId, endWpId, floorBaseY = 0) {
-    const nodes = CFG.nodosCaminables;
-    if (!nodes[startWpId] || !nodes[endWpId]) return [];
-    if (startWpId === endWpId) {
-      const c = nodes[startWpId];
-      return [new THREE.Vector3(c[0], floorBaseY + c[1], c[2])];
+  const NAV_MIN_X = -16;
+  const NAV_MAX_X = 104;
+  const NAV_MIN_Z = -2;
+  const NAV_MAX_Z = 78;
+  const NAV_NX = NAV_MAX_X - NAV_MIN_X + 1;
+  const NAV_NZ = NAV_MAX_Z - NAV_MIN_Z + 1;
+  const walkableGridCache = {};
+
+  function isFloorPointWalkable(x, z, floorId) {
+    if (x < NAV_MIN_X || x > NAV_MAX_X || z < NAV_MIN_Z || z > NAV_MAX_Z) return false;
+    const floorBaseY = (floorId - 1) * H;
+    if (isPositionColliding(x, z, 0.56, floorBaseY + 0.5)) return false;
+
+    // Excluir huecos de escaleras y rampas para no cruzar sobre abismos ni losas inclinadas
+    if (x >= 42.6 && x <= 52.3 && z >= 27.6 && z <= 38.4) return false;
+    if (x >= 79.6 && x <= 89.4 && z >= 27.6 && z <= 38.4) return false;
+    if (x >= 11.4 && x <= 20.8 && z >= -0.5 && z <= 28.2) return false;
+
+    if (floorId > 1) {
+      // Pisos 2..4: caminar estrictamente sobre las losas reales existentes
+      const onWestSlab = x >= 6.4 && x <= 42.6 && z >= 28.4 && z <= 59.1;
+      const onSouthBay = x >= 23.9 && x <= 45.6 && z >= 59.1 && z <= 61.6;
+      const onNorthWing = x >= 20.9 && x <= 49.6 && z >= 0.4 && z <= 27.6;
+      const onEastWing = x >= 42.6 && x <= 100.6 && z >= 38.4 && z <= 59.1;
+      const onAudHall = x >= 93.4 && x <= 100.6 && z >= 34.4 && z <= 38.4;
+      return onWestSlab || onSouthBay || onNorthWing || onEastWing || onAudHall;
     }
 
-    const dist = {};
-    const prev = {};
-    const unvisited = new Set(Object.keys(nodes));
-
-    Object.keys(nodes).forEach((k) => {
-      dist[k] = Infinity;
-      prev[k] = null;
-    });
-    dist[startWpId] = 0;
-
-    const adj = {};
-    Object.keys(nodes).forEach((k) => (adj[k] = []));
-    CFG.conexiones.forEach((conn) => {
-      if (conn.estado !== 'libre') return;
-      const a = nodes[conn.desde];
-      const b = nodes[conn.hacia];
-      if (!a || !b) return;
-      const w = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
-      adj[conn.desde].push({ to: conn.hacia, weight: w });
-      adj[conn.hacia].push({ to: conn.desde, weight: w });
-    });
-
-    while (unvisited.size > 0) {
-      let u = null;
-      let bestD = Infinity;
-      unvisited.forEach((k) => {
-        if (dist[k] < bestD) {
-          bestD = dist[k];
-          u = k;
-        }
-      });
-
-      if (u === null || u === endWpId) break;
-      unvisited.delete(u);
-
-      for (const edge of adj[u]) {
-        if (!unvisited.has(edge.to)) continue;
-        const alt = dist[u] + edge.weight;
-        if (alt < dist[edge.to]) {
-          dist[edge.to] = alt;
-          prev[edge.to] = u;
-        }
-      }
-    }
-
-    const pathIds = [];
-    let curr = endWpId;
-    while (curr) {
-      pathIds.unshift(curr);
-      curr = prev[curr];
-    }
-
-    return pathIds.map((id) => {
-      const c = nodes[id];
-      return new THREE.Vector3(c[0], floorBaseY + c[1], c[2]);
-    });
+    // Piso 1: evitar jardineras exteriores de los árboles para no chocar con los troncos
+    if (x >= 19.0 && x <= 85.0 && z >= 64.4 && z <= 68.1) return false;
+    if (x >= -10.8 && x <= -7.6 && z >= 29.5 && z <= 58.5) return false;
+    return true;
   }
 
-  function getNearestWalkableNodeId(posVec) {
-    let bestId = 'wp_ingreso';
-    let minD = Infinity;
-    for (const [id, coords] of Object.entries(CFG.nodosCaminables)) {
-      const d = Math.hypot(posVec.x - coords[0], posVec.z - coords[2]);
-      if (d < minD) {
-        minD = d;
-        bestId = id;
+  function getWalkableGrid(floorId) {
+    if (walkableGridCache[floorId]) return walkableGridCache[floorId];
+    const grid = new Uint8Array(NAV_NX * NAV_NZ);
+    for (let ix = 0; ix < NAV_NX; ix++) {
+      const wx = NAV_MIN_X + ix;
+      for (let iz = 0; iz < NAV_NZ; iz++) {
+        const wz = NAV_MIN_Z + iz;
+        if (isFloorPointWalkable(wx, wz, floorId)) {
+          grid[ix * NAV_NZ + iz] = 1;
+        }
       }
     }
-    return bestId;
+    walkableGridCache[floorId] = grid;
+    return grid;
+  }
+
+  function hasClearNavLine(ax, az, bx, bz, floorId) {
+    const dist = Math.hypot(bx - ax, bz - az);
+    const steps = Math.max(2, Math.ceil(dist / 0.35));
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      const sx = ax + (bx - ax) * t;
+      const sz = az + (bz - az) * t;
+      if (!isFloorPointWalkable(sx, sz, floorId)) return false;
+    }
+    return true;
+  }
+
+  function snapToNearestWalkableCell(wx, wz, grid) {
+    const ix0 = Math.max(0, Math.min(NAV_NX - 1, Math.round(wx) - NAV_MIN_X));
+    const iz0 = Math.max(0, Math.min(NAV_NZ - 1, Math.round(wz) - NAV_MIN_Z));
+    if (grid[ix0 * NAV_NZ + iz0]) return [ix0, iz0];
+    let best = null;
+    let bestD2 = Infinity;
+    for (let r = 1; r <= 12; r++) {
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          const ix = ix0 + dx;
+          const iz = iz0 + dz;
+          if (ix < 0 || ix >= NAV_NX || iz < 0 || iz >= NAV_NZ) continue;
+          if (!grid[ix * NAV_NZ + iz]) continue;
+          const d2 = dx * dx + dz * dz;
+          if (d2 < bestD2) {
+            bestD2 = d2;
+            best = [ix, iz];
+          }
+        }
+      }
+      if (best) return best;
+    }
+    return [ix0, iz0];
+  }
+
+  function findCollisionFreeFloorPath(startVec, endVec, floorId) {
+    const floorBaseY = (floorId - 1) * H;
+    const eye = CFG.edificio.alturaOjos;
+    const pointAtFloor = (px, pz) => {
+      const outdoor = floorId === 1 && (px < -3.6 || pz > 62.4);
+      const surfY = outdoor ? getFloorSurfaceY(px, pz, floorBaseY + eye) : floorBaseY;
+      return new THREE.Vector3(px, surfY + eye, pz);
+    };
+
+    if (hasClearNavLine(startVec.x, startVec.z, endVec.x, endVec.z, floorId)) {
+      return [pointAtFloor(startVec.x, startVec.z), pointAtFloor(endVec.x, endVec.z)];
+    }
+
+    const grid = getWalkableGrid(floorId);
+    const [sx, sz] = snapToNearestWalkableCell(startVec.x, startVec.z, grid);
+    const [gx, gz] = snapToNearestWalkableCell(endVec.x, endVec.z, grid);
+
+    const total = NAV_NX * NAV_NZ;
+    const gScore = new Float32Array(total).fill(Infinity);
+    const fScore = new Float32Array(total).fill(Infinity);
+    const parent = new Int32Array(total).fill(-1);
+    const closed = new Uint8Array(total);
+    const open = [];
+
+    const startIdx = sx * NAV_NZ + sz;
+    const goalIdx = gx * NAV_NZ + gz;
+    gScore[startIdx] = 0;
+    fScore[startIdx] = Math.hypot(gx - sx, gz - sz);
+    open.push(startIdx);
+
+    const dirs = [
+      [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
+      [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414],
+    ];
+
+    let found = false;
+    while (open.length > 0) {
+      let bestPos = 0;
+      for (let i = 1; i < open.length; i++) {
+        if (fScore[open[i]] < fScore[open[bestPos]]) bestPos = i;
+      }
+      const cur = open.splice(bestPos, 1)[0];
+      if (cur === goalIdx) {
+        found = true;
+        break;
+      }
+      closed[cur] = 1;
+      const cx = Math.floor(cur / NAV_NZ);
+      const cz = cur % NAV_NZ;
+
+      for (const [dx, dz, cost] of dirs) {
+        const nx = cx + dx;
+        const nz = cz + dz;
+        if (nx < 0 || nx >= NAV_NX || nz < 0 || nz >= NAV_NZ) continue;
+        const nIdx = nx * NAV_NZ + nz;
+        if (closed[nIdx] || !grid[nIdx]) continue;
+        // Evitar cortar esquinas diagonales pegadas a muros
+        if (dx !== 0 && dz !== 0) {
+          if (!grid[(cx + dx) * NAV_NZ + cz] || !grid[cx * NAV_NZ + (cz + dz)]) continue;
+        }
+        const tentG = gScore[cur] + cost;
+        if (tentG < gScore[nIdx]) {
+          parent[nIdx] = cur;
+          gScore[nIdx] = tentG;
+          fScore[nIdx] = tentG + Math.hypot(gx - nx, gz - nz);
+          if (!open.includes(nIdx)) open.push(nIdx);
+        }
+      }
+    }
+
+    const rawPts2D = [[startVec.x, startVec.z]];
+    if (found) {
+      const cells = [];
+      let c = goalIdx;
+      while (c !== -1) {
+        cells.push([NAV_MIN_X + Math.floor(c / NAV_NZ), NAV_MIN_Z + (c % NAV_NZ)]);
+        c = parent[c];
+      }
+      cells.reverse();
+      cells.forEach((pt) => rawPts2D.push(pt));
+    }
+    rawPts2D.push([endVec.x, endVec.z]);
+
+    // Suavizado string-pull verificando despeje real de muros (cero zigzags ni choques)
+    const smoothed2D = [rawPts2D[0]];
+    let anchor = 0;
+    while (anchor < rawPts2D.length - 1) {
+      let nextAnchor = anchor + 1;
+      for (let test = rawPts2D.length - 1; test > anchor + 1; test--) {
+        if (hasClearNavLine(rawPts2D[anchor][0], rawPts2D[anchor][1], rawPts2D[test][0], rawPts2D[test][1], floorId)) {
+          nextAnchor = test;
+          break;
+        }
+      }
+      smoothed2D.push(rawPts2D[nextAnchor]);
+      anchor = nextAnchor;
+    }
+
+    // Muestrear gradas exteriores en Piso 1 para subir/bajar sin atravesar escalones
+    const outVecs = [];
+    for (let i = 0; i < smoothed2D.length - 1; i++) {
+      const [ax, az] = smoothed2D[i];
+      const [bx, bz] = smoothed2D[i + 1];
+      outVecs.push(pointAtFloor(ax, az));
+      if (floorId === 1 && (ax < 3 || bx < 3 || az > 54 || bz > 54)) {
+        const segLen = Math.hypot(bx - ax, bz - az);
+        const sub = Math.floor(segLen / 1.4);
+        for (let k = 1; k < sub; k++) {
+          const sx = ax + ((bx - ax) * k) / sub;
+          const sz = az + ((bz - az) * k) / sub;
+          if (sx < 2 || sz > 61) outVecs.push(pointAtFloor(sx, sz));
+        }
+      }
+    }
+    const last = smoothed2D[smoothed2D.length - 1];
+    outVecs.push(pointAtFloor(last[0], last[1]));
+    return outVecs;
   }
 
   function buildSafeCorridorPath(points) {
@@ -2313,7 +2473,7 @@ import './config.js';
       const lenIn = vIn.length();
       const lenOut = vOut.length();
 
-      const radius = Math.min(1.0, lenIn * 0.32, lenOut * 0.32);
+      const radius = Math.min(0.65, lenIn * 0.28, lenOut * 0.28);
       if (radius < 0.15) {
         path.add(new THREE.LineCurve3(currentStart, cornerPt));
         currentStart = cornerPt.clone();
@@ -2479,19 +2639,19 @@ import './config.js';
 
       if (stepDir > 0) {
         pts.push(
-          new THREE.Vector3(42.5, y0 + eye, 30.1),
-          new THREE.Vector3(50.7, yMid + eye, 30.1),
-          new THREE.Vector3(50.7, yMid + eye, 35.1),
-          new THREE.Vector3(42.5, y1 + eye, 35.1),
-          new THREE.Vector3(40.5, y1 + eye, 33.0)
+          new THREE.Vector3(42.2, y0 + eye, 30.3),
+          new THREE.Vector3(50.6, yMid + eye, 30.3),
+          new THREE.Vector3(50.6, yMid + eye, 35.4),
+          new THREE.Vector3(42.2, y1 + eye, 35.4),
+          new THREE.Vector3(41.2, y1 + eye, 33.0)
         );
       } else {
         pts.push(
-          new THREE.Vector3(42.5, y0 + eye, 35.1),
-          new THREE.Vector3(50.7, yMid + eye, 35.1),
-          new THREE.Vector3(50.7, yMid + eye, 30.1),
-          new THREE.Vector3(42.5, y1 + eye, 30.1),
-          new THREE.Vector3(40.5, y1 + eye, 33.0)
+          new THREE.Vector3(42.2, y0 + eye, 35.4),
+          new THREE.Vector3(50.6, yMid + eye, 35.4),
+          new THREE.Vector3(50.6, yMid + eye, 30.3),
+          new THREE.Vector3(42.2, y1 + eye, 30.3),
+          new THREE.Vector3(41.2, y1 + eye, 33.0)
         );
       }
       f += stepDir;
@@ -2503,7 +2663,7 @@ import './config.js';
     const targetLugar = CFG.lugares[targetPlaceId];
     if (!targetLugar) return;
 
-    if (targetLugar.soloPiso1 && targetFloorId !== 1) {
+    if ((targetLugar.soloPiso1 || targetPlaceId === 'patrimonio') && targetFloorId !== 1) {
       targetFloorId = 1;
     }
 
@@ -2533,39 +2693,22 @@ import './config.js';
     lastRouteOriginPos = startPos.clone();
     lastRouteTargetId = targetPlaceId;
 
-    const startWp = isWalking
-      ? getNearestWalkableNodeId(startPos)
-      : CFG.lugares[currentPlaceId]?.nodoRed || getNearestWalkableNodeId(startPos);
-
-    const endWp = targetLugar.nodoRed;
     let rawWaypoints = [];
-
     if (currentFloor !== targetFloorId) {
-      // Si cambia de piso, camina hasta el frente Oeste de Escalera 1 (`wp_cruce_norte_este`),
-      // sube/baja por los peldaños y descanso girados 90°, y sigue hacia el destino
-      const toStair = findShortestWalkablePath(startWp, 'wp_cruce_norte_este', startFloorY);
+      const stairEntryStart = new THREE.Vector3(41.2, startFloorY + CFG.edificio.alturaOjos, 32.8);
+      const stairEntryEnd = new THREE.Vector3(41.2, targetFloorY + CFG.edificio.alturaOjos, 32.8);
+      const toStair = findCollisionFreeFloorPath(startPos, stairEntryStart, currentFloor);
       const stairPts = buildStairClimbPoints(currentFloor, targetFloorId);
-      const fromStair = findShortestWalkablePath('wp_cruce_norte_este', endWp, targetFloorY);
+      const fromStair = findCollisionFreeFloorPath(stairEntryEnd, endPos, targetFloorId);
       rawWaypoints = [...toStair, ...stairPts, ...fromStair];
       currentFloor = targetFloorId;
     } else {
-      rawWaypoints = findShortestWalkablePath(startWp, endWp, targetFloorY);
-    }
-
-    if (rawWaypoints.length >= 2) {
-      const toFirst = rawWaypoints[0].clone().sub(startPos);
-      const toSecond = rawWaypoints[1].clone().sub(startPos);
-      if (toFirst.length() < 1.2 || toFirst.dot(toSecond) < 0) {
-        rawWaypoints.shift();
-      }
+      rawWaypoints = findCollisionFreeFloorPath(startPos, endPos, targetFloorId);
     }
 
     const controlPoints = [startPos];
     rawWaypoints.forEach((pt) => {
-      if (
-        controlPoints[controlPoints.length - 1].distanceTo(pt) > 0.45 &&
-        pt.distanceTo(endPos) > 0.45
-      ) {
+      if (controlPoints[controlPoints.length - 1].distanceTo(pt) > 0.30) {
         controlPoints.push(pt);
       }
     });
@@ -2575,8 +2718,9 @@ import './config.js';
 
     activeCurve = buildSafeCorridorPath(controlPoints);
     routeLength = activeCurve ? activeCurve.getLength() : 1;
-    walkDuration = Math.max(1.2, routeLength / CFG.edificio.velocidadCaminata);
+    walkDuration = Math.max(1.0, routeLength / CFG.edificio.velocidadCaminata);
     walkElapsed = 0;
+    currentYaw = normalizeAngle(currentYaw);
     isWalking = true;
     isPaused = false;
 
@@ -2622,7 +2766,7 @@ import './config.js';
     prevY = e.clientY;
 
     // Modificamos directamente currentYaw y currentPitch para que la vista quede libre a tu gusto y nunca se regrese sola
-    currentYaw -= dx * 0.0042;
+    currentYaw = normalizeAngle(currentYaw - dx * 0.0042);
     currentPitch = Math.max(-1.15, Math.min(1.15, currentPitch - dy * 0.0036));
     userYaw = 0;
     userPitch = 0;
@@ -2967,13 +3111,15 @@ import './config.js';
 
       camera.position.set(pointOnCurve.x, pointOnCurve.y + subtleBob, pointOnCurve.z);
 
-      // Si el usuario NO está arrastrando el mouse, orientamos suavemente hacia el camino/destino
+      // Orientación suave hacia adelante sin giros bruscos ni vueltas en el sitio
       if (!dragging) {
-        const lookAheadT = Math.min(1, easedT + 0.05);
+        const remainingDist = (1 - easedT) * routeLength;
+        const lookAheadMeters = Math.min(remainingDist, 1.8);
+        const lookAheadT = Math.min(1, easedT + lookAheadMeters / Math.max(routeLength, 0.25));
         const lookAheadPt = activeCurve.getPointAt(lookAheadT);
         const pathDir = lookAheadPt.sub(pointOnCurve);
-        if (pathDir.lengthSq() < 0.0001) {
-          pathDir.copy(activeCurve.getTangentAt(easedT));
+        if (pathDir.lengthSq() < 0.0004) {
+          pathDir.copy(targetArrivalLook).sub(camera.position);
         }
         pathDir.normalize();
 
@@ -2981,12 +3127,16 @@ import './config.js';
         const pathAngles = directionToYawPitch(pathDir);
         const arrivalAngles = directionToYawPitch(arrivalDir);
 
-        const blendEnd = easeInOutSmoother(Math.max(0, (rawT - 0.80) / 0.20));
+        const blendEnd = routeLength < 1.2
+          ? easeInOutSmoother(rawT)
+          : easeInOutSmoother(Math.max(0, 1 - remainingDist / 2.2));
         const targetYaw = lerpAngleShortest(pathAngles.yaw, arrivalAngles.yaw, blendEnd);
         const targetPitch = pathAngles.pitch + (arrivalAngles.pitch - pathAngles.pitch) * blendEnd;
 
-        currentYaw = lerpAngleShortest(currentYaw, targetYaw, Math.min(1, dt * 7.5));
-        currentPitch += (targetPitch - currentPitch) * Math.min(1, dt * 7.5);
+        const maxTurn = 2.3 * dt;
+        const yawDelta = Math.max(-maxTurn, Math.min(maxTurn, shortestAngleDiff(currentYaw, targetYaw)));
+        currentYaw = normalizeAngle(currentYaw + yawDelta);
+        currentPitch += (targetPitch - currentPitch) * Math.min(1, dt * 4.5);
       }
 
       if (rawT >= 1) {
